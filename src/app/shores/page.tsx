@@ -12,7 +12,7 @@ export default async function ShoresPage({
 
   return (
     <OceanAppShell active="/shores" marineAlertCount={snapshot.alerts.length} marineAlertHeadline={snapshot.alerts[0]?.headline}>
-      <ActivityForecastPage activity="shores" selectedZone="windward" selectedShore={selectedShore} snapshot={snapshot} />
+      <ActivityForecastPage activity="shores" selectedShore={selectedShore} snapshot={snapshot} />
     </OceanAppShell>
   );
 }

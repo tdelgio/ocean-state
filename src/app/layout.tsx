@@ -5,6 +5,12 @@ export const metadata: Metadata = {
   title: "Ocean State — Live Maui Ocean Conditions",
   description:
     "Live ocean-state observations for Maui: wind, bump energy, channels, harbors, cameras, tide, rain, and marine conditions.",
+  applicationName: "Ocean State",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Ocean State",
+  },
 };
 
 export default function RootLayout({

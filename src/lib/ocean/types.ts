@@ -77,7 +77,12 @@ export interface ShoreOceanObservations {
   bumpEnergy: SeaEnergyObservation;
 }
 
-export type OffshoreBuoyId = "lanai-offshore" | "open-ocean-nw";
+export type OffshoreBuoyId =
+  | "lanai-offshore"
+  | "open-ocean-nw"
+  | "northern-hawaii"
+  | "southwest-hawaii"
+  | "southeast-hawaii";
 
 export interface OffshoreBuoyObservation {
   id: OffshoreBuoyId;
@@ -144,6 +149,14 @@ export interface MarineForecastDay {
   source: SourceMeta;
 }
 
+export interface ChannelForecastObservation {
+  channelId: "pailolo" | "kaiwi" | "alenuihaha";
+  displayName: string;
+  wind: WindObservation;
+  bumpEnergy: MarineForecastEnergy;
+  rainSummary: string | null;
+}
+
 export interface WeatherAlert {
   id: string;
   headline: string;
@@ -198,6 +211,7 @@ export interface OceanConditionSnapshot {
   forecastWindows: ForecastWindow[];
   shoreForecastWindows: Record<MauiShoreId, ForecastWindow[]>;
   marineForecastDays: Record<"windward" | "leeward", MarineForecastDay[]>;
+  channelForecasts: Record<ChannelForecastObservation["channelId"], ChannelForecastObservation>;
   alerts: WeatherAlert[];
   sources: SourceMeta[];
 }

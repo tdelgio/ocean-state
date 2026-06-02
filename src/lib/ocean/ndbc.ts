@@ -345,11 +345,25 @@ function createSource(source: string, status: SourceMeta["status"], stationId: s
 function withError<T extends WindObservation | SwellObservation>(observation: T, stationId: string, error: unknown): T {
   return {
     ...observation,
+    ...("heightFt" in observation
+      ? {
+          heightFt: null,
+          dominantPeriodSec: null,
+          directionDeg: null,
+          directionCardinal: null,
+          waterTempF: null,
+        }
+      : {
+          speedKt: null,
+          gustKt: null,
+          directionDeg: null,
+          directionCardinal: null,
+        }),
     source: {
       ...observation.source,
       stationId,
       sourceUrl: `https://www.ndbc.noaa.gov/station_page.php?station=${stationId.toLowerCase()}`,
-      status: "mock",
+      status: "missing",
       error: error instanceof Error ? error.message : "Unknown NDBC error",
     },
   };
@@ -358,11 +372,15 @@ function withError<T extends WindObservation | SwellObservation>(observation: T,
 function withSeaEnergyError(observation: SeaEnergyObservation, stationId: string, error: unknown): SeaEnergyObservation {
   return {
     ...observation,
+    heightFt: null,
+    periodSec: null,
+    directionDeg: null,
+    directionCardinal: null,
     source: {
       ...observation.source,
       stationId,
       sourceUrl: `https://www.ndbc.noaa.gov/station_page.php?station=${stationId.toLowerCase()}`,
-      status: "mock",
+      status: "missing",
       error: error instanceof Error ? error.message : "Unknown NDBC spectral error",
     },
   };

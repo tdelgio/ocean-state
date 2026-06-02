@@ -1,7 +1,7 @@
 import { getCoopsCurrentObservation, getCoopsCurrentPredictionObservation, getCoopsTideObservation, getCoopsTidePredictionObservation } from "./coops";
 import { getMauiCoastalWinds } from "./coastal";
 import { getMauiHarborWinds } from "./harbors";
-import { getMauiMarineForecastDays } from "./marine";
+import { getChannelForecastObservations, getMauiMarineForecastDays } from "./marine";
 import { getDdFadForecastWind } from "./mfm";
 import { createMockOceanSnapshot, malikoNorthShoreRoute } from "./mock-data";
 import { getNdbcObservations } from "./ndbc";
@@ -88,10 +88,13 @@ export async function getOceanConditionSnapshot(route: RouteConfig = malikoNorth
 
 async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanConditionSnapshot> {
   try {
-    const [buoy, southBuoy, openOceanNwBuoy, ddFadForecastWind, tide, southTide, westTide, current, northSurfaceCurrent, southCurrent, westCurrent, coastalWinds, harborWinds, forecastWindows, southForecastWindows, westForecastWindows, marineForecastDays, alerts] = await Promise.all([
+    const [buoy, southBuoy, openOceanNwBuoy, northernHawaiiBuoy, southwestHawaiiBuoy, southeastHawaiiBuoy, ddFadForecastWind, tide, southTide, westTide, current, northSurfaceCurrent, southCurrent, westCurrent, coastalWinds, harborWinds, forecastWindows, southForecastWindows, westForecastWindows, marineForecastDays, channelForecasts, alerts] = await Promise.all([
       getNdbcObservations(route.stations.primaryBuoyId),
       getNdbcObservations("51213"),
       getNdbcObservations("51001"),
+      getNdbcObservations("51000"),
+      getNdbcObservations("51002"),
+      getNdbcObservations("51004"),
       getDdFadForecastWind(),
       getCoopsTideObservation(route.stations.tideStationId),
       getCoopsTidePredictionObservation("TPT2797", "Kihei, Maalaea Bay"),
@@ -106,6 +109,7 @@ async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanCond
       getNwsForecastWindows({ latitude: 20.756, longitude: -156.457 }),
       getNwsForecastWindows({ latitude: 20.872, longitude: -156.678 }),
       getMauiMarineForecastDays(),
+      getChannelForecastObservations(),
       getNwsAlerts(route.stations.nwsPoint),
     ]);
     const generatedAt = new Date().toISOString();
@@ -130,6 +134,27 @@ async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanCond
         "Early North Pacific groundswell detection before Maui arrival.",
         "51001",
         openOceanNwBuoy,
+      ),
+      "northern-hawaii": createOffshoreBuoyObservation(
+        "northern-hawaii",
+        "Northern Hawaii",
+        "Open-ocean trade flow and swell validation northeast of the islands.",
+        "51000",
+        northernHawaiiBuoy,
+      ),
+      "southwest-hawaii": createOffshoreBuoyObservation(
+        "southwest-hawaii",
+        "Southwest Hawaii",
+        "Deep-water validation south southwest of the islands.",
+        "51002",
+        southwestHawaiiBuoy,
+      ),
+      "southeast-hawaii": createOffshoreBuoyObservation(
+        "southeast-hawaii",
+        "Southeast Hawaii",
+        "Deep-water validation southeast of the islands.",
+        "51004",
+        southeastHawaiiBuoy,
       ),
     };
 
@@ -163,6 +188,7 @@ async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanCond
         west: westForecastWindows,
       },
       marineForecastDays,
+      channelForecasts,
       alerts,
       sources: [
         buoy.wind.source,
@@ -177,6 +203,12 @@ async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanCond
         openOceanNwBuoy.swell.source,
         openOceanNwBuoy.bumpEnergy.source,
         openOceanNwBuoy.groundswell.source,
+        northernHawaiiBuoy.wind.source,
+        northernHawaiiBuoy.swell.source,
+        southwestHawaiiBuoy.wind.source,
+        southwestHawaiiBuoy.swell.source,
+        southeastHawaiiBuoy.wind.source,
+        southeastHawaiiBuoy.swell.source,
         ddFadForecastWind.source,
         tide.source,
         southTide.source,
@@ -190,6 +222,7 @@ async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanCond
         ...forecastWindows.map((window) => window.source),
         ...southForecastWindows.map((window) => window.source),
         ...westForecastWindows.map((window) => window.source),
+        ...Object.values(channelForecasts).map((channel) => channel.wind.source),
         ...alerts.map((alert) => alert.source),
       ],
     };

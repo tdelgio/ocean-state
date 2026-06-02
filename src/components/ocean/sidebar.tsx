@@ -50,7 +50,7 @@ export function Sidebar({ active }: { active: string }) {
             <span>
               <span className="flex items-center gap-2 text-sm font-semibold">
                 {item.href === "/home" ? (
-                  <span className="live-pulse size-2 rounded-full bg-emerald-500" />
+                  <span className="live-pulse size-2 rounded-full bg-emerald-500 dark:bg-emerald-400" />
                 ) : null}
                 {item.label}
               </span>

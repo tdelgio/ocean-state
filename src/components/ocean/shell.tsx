@@ -1,6 +1,7 @@
 import { Sidebar } from "@/components/ocean/sidebar";
 import { TopNavigation } from "@/components/ocean/top-navigation";
 import { LiveDataRefresh } from "@/components/ocean/live-data-refresh";
+import { InstallAppLink } from "@/components/ocean/install-app-link";
 
 export function OceanAppShell({
   active,
@@ -29,6 +30,7 @@ export function OceanAppShell({
               <a className="text-[#0d5968] underline-offset-4 hover:underline dark:text-[#9debf9]" href="mailto:feedback@oceanstate.live">
                 Send feedback
               </a>
+              <InstallAppLink />
             </div>
           </footer>
         </div>

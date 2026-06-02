@@ -1,9 +1,11 @@
 import type {
   CurrentObservation,
+  ChannelForecastObservation,
   CoastalWindObservation,
   ForecastWindow,
   HarborWindObservation,
   OceanConditionSnapshot,
+  OffshoreBuoyId,
   OffshoreBuoyObservation,
   RouteConfig,
   SeaEnergyObservation,
@@ -222,7 +224,7 @@ export const mockOpenOceanNwGroundswellObservation: SeaEnergyObservation = {
   source: mockOpenOceanNwSwellObservation.source,
 };
 
-export const mockOffshoreObservations: Record<"lanai-offshore" | "open-ocean-nw", OffshoreBuoyObservation> = {
+export const mockOffshoreObservations: Record<OffshoreBuoyId, OffshoreBuoyObservation> = {
   "lanai-offshore": {
     id: "lanai-offshore",
     displayName: "Lanai Offshore",
@@ -250,7 +252,33 @@ export const mockOffshoreObservations: Record<"lanai-offshore" | "open-ocean-nw"
     groundswell: mockOpenOceanNwGroundswellObservation,
     bumpEnergy: mockOpenOceanNwBumpEnergyObservation,
   },
+  "northern-hawaii": createMockDeepWaterBuoy("northern-hawaii", "Northern Hawaii", "51000"),
+  "southwest-hawaii": createMockDeepWaterBuoy("southwest-hawaii", "Southwest Hawaii", "51002"),
+  "southeast-hawaii": createMockDeepWaterBuoy("southeast-hawaii", "Southeast Hawaii", "51004"),
 };
+
+function createMockDeepWaterBuoy(id: OffshoreBuoyId, displayName: string, stationId: string): OffshoreBuoyObservation {
+  return {
+    id,
+    displayName,
+    purpose: "Deep-water NOAA station unavailable.",
+    stationId,
+    wind: { ...mockWindObservation, speedKt: null, gustKt: null, directionDeg: null, directionCardinal: null },
+    swell: { ...mockSwellObservation, heightFt: null, dominantPeriodSec: null, directionDeg: null, directionCardinal: null },
+    groundswell: { ...mockGroundswellObservation, heightFt: null, periodSec: null, directionDeg: null, directionCardinal: null },
+    bumpEnergy: { ...mockBumpEnergyObservation, heightFt: null, periodSec: null, directionDeg: null, directionCardinal: null },
+  };
+}
+
+function createMockChannelForecast(channelId: ChannelForecastObservation["channelId"], displayName: string): ChannelForecastObservation {
+  return {
+    channelId,
+    displayName,
+    wind: { ...mockWindObservation, speedKt: null, gustKt: null, directionDeg: null, directionCardinal: null },
+    bumpEnergy: { heightFt: null, periodSec: null, directionCardinal: null },
+    rainSummary: null,
+  };
+}
 
 export const mockTideObservation: TideObservation = {
   stationId: "1615680",
@@ -458,6 +486,11 @@ export function createMockOceanSnapshot(route: RouteConfig = malikoNorthShoreRou
     marineForecastDays: {
       windward: [],
       leeward: [],
+    },
+    channelForecasts: {
+      pailolo: createMockChannelForecast("pailolo", "Pailolo"),
+      kaiwi: createMockChannelForecast("kaiwi", "Kaiwi"),
+      alenuihaha: createMockChannelForecast("alenuihaha", "Alenuihaha"),
     },
     alerts: [],
     sources: [

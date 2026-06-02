@@ -520,6 +520,14 @@
   color: #ff9b7d !important;
 }
 
+.dark .ocean-shell [class*="text-[#c54a24]"] {
+  color: #ffad87 !important;
+}
+
+.dark .ocean-shell [class*="text-[#b9381d]"] {
+  color: #ff9b7d !important;
+}
+
 .dark .ocean-shell [class*="border-[#d8dedf]"] {
   border-color: rgba(123, 207, 222, 0.2) !important;
 }

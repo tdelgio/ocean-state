@@ -41,7 +41,7 @@ export function TopNavigation({
             )}
           >
             <span className="inline-flex items-center justify-center gap-1.5">
-              {item.href === "/home" ? <span className="live-pulse size-1.5 rounded-full bg-emerald-500" /> : null}
+              {item.href === "/home" ? <span className="live-pulse size-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" /> : null}
               {item.label}
             </span>
           </Link>
