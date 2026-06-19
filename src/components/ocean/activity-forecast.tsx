@@ -1065,6 +1065,7 @@ function CurrentCard({ current }: { current: OceanConditionSnapshot["current"] }
 }
 
 function TideCard({ tide }: { tide: OceanConditionSnapshot["tide"] }) {
+  const tideEvents = getOrderedTideEvents(tide);
   return (
     <section className="ocean-card rounded-[1.5rem] border border-indigo-800/18 bg-[#e0e7ff] p-4 dark:border-indigo-200/20 dark:bg-[#162542]">
       <div className="flex flex-col items-start gap-2 sm:flex-row sm:justify-between sm:gap-3">
@@ -1088,11 +1089,26 @@ function TideCard({ tide }: { tide: OceanConditionSnapshot["tide"] }) {
             {formatTideHeight(tide)}
           </dd>
         </div>
-        <TideEventRow label="Next low" event={tide.nextLow} />
-        <TideEventRow label="Next high" event={tide.nextHigh} />
+        {tideEvents.map((event) => (
+          <TideEventRow key={event.label} label={event.label} event={event.value} />
+        ))}
       </dl>
     </section>
   );
+}
+
+function getOrderedTideEvents(tide: OceanConditionSnapshot["tide"]) {
+  const low = { label: "Next low", value: tide.nextLow };
+  const high = { label: "Next high", value: tide.nextHigh };
+
+  if (tide.trend === "rising") return [high, low];
+  if (tide.trend === "falling") return [low, high];
+
+  return [low, high].sort((a, b) => {
+    if (!a.value) return 1;
+    if (!b.value) return -1;
+    return new Date(a.value.time).getTime() - new Date(b.value.time).getTime();
+  });
 }
 
 function TideEventRow({
