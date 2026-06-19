@@ -76,7 +76,7 @@ export async function getCoopsTidePredictionObservation(stationId: string, stati
     return {
       stationId,
       stationName,
-      currentWaterLevelFt: null,
+      currentWaterLevelFt: estimateCurrentTideHeight(events),
       trend: inferPredictionTrend(events),
       nextHigh: findNextEvent(events, "high"),
       nextLow: findNextEvent(events, "low"),
@@ -348,6 +348,24 @@ function inferPredictionTrend(events: TideEvent[]): TideTrend {
   const next = events.find((event) => new Date(event.time).getTime() >= Date.now());
   if (!next) return "unknown";
   return next.type === "high" ? "rising" : "falling";
+}
+
+function estimateCurrentTideHeight(events: TideEvent[]): number | null {
+  const now = Date.now();
+  const sorted = [...events].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+  const previous = [...sorted].reverse().find((event) => new Date(event.time).getTime() <= now);
+  const next = sorted.find((event) => new Date(event.time).getTime() >= now);
+  if (!previous || !next) return null;
+
+  const previousTime = new Date(previous.time).getTime();
+  const nextTime = new Date(next.time).getTime();
+  const duration = nextTime - previousTime;
+  if (duration <= 0) return previous.heightFt;
+
+  const progress = Math.min(1, Math.max(0, (now - previousTime) / duration));
+  const smoothed = (1 - Math.cos(Math.PI * progress)) / 2;
+  const height = previous.heightFt + (next.heightFt - previous.heightFt) * smoothed;
+  return Math.round(height * 100) / 100;
 }
 
 function getCoopsStationUrl(stationId: string) {

@@ -247,6 +247,53 @@ function ShoresMode({
   const groundswell = formatSeaEnergy(shoreOcean.groundswell);
   const energyDirection = shoreOcean.bumpEnergy.directionCardinal ?? shoreOcean.swell.directionCardinal ?? "direction unavailable";
   const shoreForecastWindows = snapshot.shoreForecastWindows[shoreOcean.shoreId];
+  const liveDataItemCandidates: Array<LiveDataListItem | null> = [
+    shoreOcean.bumpEnergy.heightFt !== null
+      ? {
+          icon: Waves,
+          label: "Wind Bumps",
+          tone: "swell",
+          primary: bumpEnergy.height,
+          secondary: `${bumpEnergy.period} · ${bumpEnergy.direction} · short-period wind swell`,
+          source: shoreOcean.bumpEnergy.source,
+        }
+      : null,
+    shoreOcean.groundswell.heightFt !== null
+      ? {
+          icon: Waves,
+          label: "Groundswell",
+          tone: "swell",
+          primary: groundswell.height,
+          secondary: `${groundswell.period} · ${groundswell.direction} · long-period`,
+          source: shoreOcean.groundswell.source,
+        }
+      : null,
+    {
+      icon: Navigation,
+      label: "Swell Direction",
+      tone: "swell",
+      primary: getSwellAlignment(zoneWind, energyDirection),
+      secondary: `${energyDirection} sea energy vs ${zoneWind.direction} wind`,
+      source: shoreOcean.swell.source,
+    },
+    {
+      icon: CloudRain,
+      label: "Rain bands",
+      tone: "rain",
+      primary: formatRain(shoreForecastWindows),
+      secondary: getRainImpact(shoreForecastWindows),
+      source: shoreForecastWindows[0]?.source,
+    },
+    {
+      icon: Compass,
+      label: "Current",
+      tone: "current",
+      primary: formatCurrent(snapshot),
+      secondary: `${snapshot.current.trend} · ${getCurrentSourceLabel(snapshot.current.source)}`,
+      source: snapshot.current.source,
+    },
+  ];
+  const liveDataItems = liveDataItemCandidates.filter((item): item is LiveDataListItem => item !== null);
 
   return (
     <div className="mt-5 space-y-5">
@@ -260,48 +307,7 @@ function ShoresMode({
         <LiveWindBlock label="Wind now" wind={zoneWind} source={shoreOcean.wind.source} />
         <LiveDataList
           className="mt-4"
-          items={[
-            {
-              icon: Waves,
-              label: "Wind Bumps",
-              tone: "swell",
-              primary: bumpEnergy.height,
-              secondary: `${bumpEnergy.period} · ${bumpEnergy.direction} · short-period wind swell`,
-              source: shoreOcean.bumpEnergy.source,
-            },
-            {
-              icon: Waves,
-              label: "Groundswell",
-              tone: "swell",
-              primary: groundswell.height,
-              secondary: `${groundswell.period} · ${groundswell.direction} · long-period`,
-              source: shoreOcean.groundswell.source,
-            },
-            {
-              icon: Navigation,
-              label: "Swell Direction",
-              tone: "swell",
-              primary: getSwellAlignment(zoneWind, energyDirection),
-              secondary: `${energyDirection} sea energy vs ${zoneWind.direction} wind`,
-              source: shoreOcean.swell.source,
-            },
-            {
-              icon: CloudRain,
-              label: "Rain bands",
-              tone: "rain",
-              primary: formatRain(shoreForecastWindows),
-              secondary: getRainImpact(shoreForecastWindows),
-              source: shoreForecastWindows[0]?.source,
-            },
-            {
-              icon: Compass,
-              label: "Current",
-              tone: "current",
-              primary: formatCurrent(snapshot),
-              secondary: `${snapshot.current.trend} · ${getCurrentSourceLabel(snapshot.current.source)}`,
-              source: snapshot.current.source,
-            },
-          ]}
+          items={liveDataItems}
         />
       </div>
     </div>
@@ -988,6 +994,9 @@ function LiveSeaInlineCard({
 }) {
   const bumpEnergy = formatSeaEnergy(shoreOcean.bumpEnergy);
   const groundswell = formatSeaEnergy(shoreOcean.groundswell);
+  const hasBumpEnergy = shoreOcean.bumpEnergy.heightFt !== null;
+  const hasGroundswell = shoreOcean.groundswell.heightFt !== null;
+  if (!hasBumpEnergy && !hasGroundswell) return null;
 
   return (
     <section className="rounded-[1.35rem] border border-blue-800/18 bg-[#dbeafe] p-5 shadow-[0_12px_28px_rgba(8,74,92,0.08)] dark:border-blue-200/20 dark:bg-[#0c2940]">
@@ -998,7 +1007,8 @@ function LiveSeaInlineCard({
         </div>
         <SourceFreshnessBadge source={shoreOcean.swell.source} compact />
       </div>
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+      <div className={`mt-5 grid gap-3 ${hasBumpEnergy && hasGroundswell ? "sm:grid-cols-2" : ""}`}>
+        {hasBumpEnergy ? (
         <div className="rounded-2xl border border-blue-900/15 bg-white/70 p-4 dark:border-blue-200/15 dark:bg-[#102f46]">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-900/65">
             Wind Bumps
@@ -1013,6 +1023,8 @@ function LiveSeaInlineCard({
             Short-period wind swell
           </p>
         </div>
+        ) : null}
+        {hasGroundswell ? (
         <div className="rounded-2xl border border-blue-900/12 bg-white/55 p-4 dark:border-blue-200/12 dark:bg-[#102f46]">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-900/60">
             Groundswell
@@ -1024,6 +1036,7 @@ function LiveSeaInlineCard({
             {groundswell.meta}
           </p>
         </div>
+        ) : null}
       </div>
       <p className="mt-2 text-sm leading-6 text-blue-900/75">
         Wind bumps are open-ocean wind-sea texture, separated from longer-period groundswell.
@@ -1071,11 +1084,8 @@ function TideCard({ tide }: { tide: OceanConditionSnapshot["tide"] }) {
         </div>
       </div>
       <p className="mt-4 text-sm leading-6 text-indigo-900/75">
-        Next {next?.type ?? "tide"}{" "}
-        {next
-          ? `${formatTime(next.time)} · ${next.heightFt} ft`
-          : "not available"}
-        .
+        Current tide {formatTideHeight(tide)}. Next {next?.type ?? "tide"}{" "}
+        {next ? `${formatTime(next.time)} · ${next.heightFt} ft` : "not available"}.
       </p>
     </section>
   );
