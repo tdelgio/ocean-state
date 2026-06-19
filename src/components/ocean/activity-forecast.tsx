@@ -573,7 +573,7 @@ type RunWindPoint = {
 function RunWindCard({ shore, points }: { shore: Shore; points: RunWindPoint[] }) {
   return (
     <section className="mb-4 max-w-full rounded-2xl border border-[#094c60]/14 bg-white p-3 shadow-[0_10px_24px_rgba(7,35,45,0.06)] dark:border-white/12 dark:bg-[#091d2b]">
-      <h3 className="text-xl font-semibold text-[#102b3a] dark:text-[#f4fbff]">{shore === "north" ? "North Shore Run" : "Maalaea / Kihei Run"}</h3>
+      <h3 className="text-xl font-semibold text-[#102b3a] dark:text-[#f4fbff]">{shore === "north" ? "North Shore Run" : "South Side Run"}</h3>
       <div className="mt-2 overflow-hidden rounded-xl border border-[#094c60]/14 bg-[#fbfaf6] dark:border-white/12 dark:bg-[#071d2a]">
         <div
           className="grid items-stretch"
@@ -1065,7 +1065,6 @@ function CurrentCard({ current }: { current: OceanConditionSnapshot["current"] }
 }
 
 function TideCard({ tide }: { tide: OceanConditionSnapshot["tide"] }) {
-  const next = getNextTideEvent(tide);
   return (
     <section className="ocean-card rounded-[1.5rem] border border-indigo-800/18 bg-[#e0e7ff] p-4 dark:border-indigo-200/20 dark:bg-[#162542]">
       <div className="flex flex-col items-start gap-2 sm:flex-row sm:justify-between sm:gap-3">
@@ -1089,27 +1088,40 @@ function TideCard({ tide }: { tide: OceanConditionSnapshot["tide"] }) {
             {formatTideHeight(tide)}
           </dd>
         </div>
-        <div className="flex items-baseline justify-between gap-4 px-4 py-3">
-          <dt className="text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-indigo-900/55">
-            Next {next?.type ?? "tide"}
-          </dt>
-          <dd className="text-right">
-            {next ? (
-              <>
-                <span className="weather-data block text-lg leading-none text-indigo-950">
-                  {formatTime(next.time)}
-                </span>
-                <span className="weather-data mt-1 block text-sm leading-none text-indigo-900/70">
-                  {next.heightFt} ft
-                </span>
-              </>
-            ) : (
-              <span className="weather-data text-sm text-indigo-950">not available</span>
-            )}
-          </dd>
-        </div>
+        <TideEventRow label="Next low" event={tide.nextLow} />
+        <TideEventRow label="Next high" event={tide.nextHigh} />
       </dl>
     </section>
+  );
+}
+
+function TideEventRow({
+  label,
+  event,
+}: {
+  label: string;
+  event: OceanConditionSnapshot["tide"]["nextLow"];
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 px-4 py-3">
+      <dt className="text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-indigo-900/55">
+        {label}
+      </dt>
+      <dd className="text-right">
+        {event ? (
+          <>
+            <span className="weather-data block text-base leading-none text-indigo-950">
+              {formatTime(event.time)}
+            </span>
+            <span className="weather-data mt-1 block text-sm leading-none text-indigo-900/70">
+              {event.heightFt} ft
+            </span>
+          </>
+        ) : (
+          <span className="weather-data text-sm text-indigo-950">not available</span>
+        )}
+      </dd>
+    </div>
   );
 }
 
@@ -1875,6 +1887,7 @@ function normalizeZone(value: string | string[] | undefined): Zone {
 }
 
 function normalizeShore(value: string | string[] | undefined): Shore {
+  if (Array.isArray(value)) return normalizeShore(value[0]);
   if (value === "south" || value === "west") return value;
   return "north";
 }

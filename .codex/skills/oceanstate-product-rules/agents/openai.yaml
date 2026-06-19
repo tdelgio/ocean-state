@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ocean State Product Rules"
+  short_description: "Preserve Ocean State data, UI, and product rules."
+  default_prompt: "Use Ocean State product rules while modifying the Maui live ocean-state app."
