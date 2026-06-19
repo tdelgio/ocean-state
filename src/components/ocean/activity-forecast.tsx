@@ -1110,11 +1110,11 @@ function TideEventRow({
       <dd className="text-right">
         {event ? (
           <>
-            <span className="weather-data block text-base leading-none text-indigo-950">
+            <span className="weather-data block text-base leading-none tracking-[0.01em] text-indigo-950">
               {formatTime(event.time)}
             </span>
             <span className="weather-data mt-1 block text-sm leading-none text-indigo-900/70">
-              {event.heightFt} ft
+              {formatFeet(event.heightFt)}
             </span>
           </>
         ) : (
@@ -1545,8 +1545,15 @@ function formatCurrentObservation(current: OceanConditionSnapshot["current"]) {
 
 function formatTideHeight(tide: OceanConditionSnapshot["tide"]) {
   return tide.currentWaterLevelFt !== null
-    ? `${tide.currentWaterLevelFt} ft`
+    ? formatFeet(tide.currentWaterLevelFt)
     : "Prediction only";
+}
+
+function formatFeet(value: number) {
+  return `${new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+  }).format(value)} ft`;
 }
 
 function formatNextTide(tide: OceanConditionSnapshot["tide"]) {
