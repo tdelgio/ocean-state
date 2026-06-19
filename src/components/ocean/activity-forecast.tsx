@@ -1067,26 +1067,48 @@ function CurrentCard({ current }: { current: OceanConditionSnapshot["current"] }
 function TideCard({ tide }: { tide: OceanConditionSnapshot["tide"] }) {
   const next = getNextTideEvent(tide);
   return (
-    <section className="ocean-card rounded-[1.5rem] border border-indigo-800/18 bg-[#e0e7ff] p-5 dark:border-indigo-200/20 dark:bg-[#162542]">
+    <section className="ocean-card rounded-[1.5rem] border border-indigo-800/18 bg-[#e0e7ff] p-4 dark:border-indigo-200/20 dark:bg-[#162542]">
       <div className="flex flex-col items-start gap-2 sm:flex-row sm:justify-between sm:gap-3">
         <CategoryPill label="Tide" tone="tide" />
         <SourceFreshnessBadge source={tide.source} compact />
       </div>
-      <div className="mt-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.1em] text-indigo-900/60">
-          Tide Trend
-        </p>
-        <div className="mt-1 flex items-center gap-2">
+      <div className="mt-4 flex items-center gap-2">
+        <div>
           <TideTrendIcon trend={tide.trend} />
-          <p className="weather-data text-4xl capitalize leading-none text-indigo-950">
-            {formatTideTrend(tide.trend)}
-          </p>
         </div>
+        <p className="weather-data text-lg capitalize leading-none text-indigo-950">
+          {formatTideTrend(tide.trend)}
+        </p>
       </div>
-      <p className="mt-4 text-sm leading-6 text-indigo-900/75">
-        Current tide {formatTideHeight(tide)}. Next {next?.type ?? "tide"}{" "}
-        {next ? `${formatTime(next.time)} · ${next.heightFt} ft` : "not available"}.
-      </p>
+      <dl className="mt-3 divide-y divide-indigo-900/10 rounded-2xl border border-indigo-800/12 bg-white/45 dark:divide-indigo-200/12 dark:border-indigo-200/12 dark:bg-[#102f46]">
+        <div className="px-4 py-3">
+          <dt className="text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-indigo-900/55">
+            Current
+          </dt>
+          <dd className="weather-data mt-1 text-4xl leading-none text-indigo-950">
+            {formatTideHeight(tide)}
+          </dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-4 px-4 py-3">
+          <dt className="text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-indigo-900/55">
+            Next {next?.type ?? "tide"}
+          </dt>
+          <dd className="text-right">
+            {next ? (
+              <>
+                <span className="weather-data block text-lg leading-none text-indigo-950">
+                  {formatTime(next.time)}
+                </span>
+                <span className="weather-data mt-1 block text-sm leading-none text-indigo-900/70">
+                  {next.heightFt} ft
+                </span>
+              </>
+            ) : (
+              <span className="weather-data text-sm text-indigo-950">not available</span>
+            )}
+          </dd>
+        </div>
+      </dl>
     </section>
   );
 }
