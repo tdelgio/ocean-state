@@ -66,3 +66,10 @@ This is a closed beta, not a public launch.
 Live sources can be delayed or unavailable. When a source fails, the app should show stale, unavailable, or sample states instead of crashing.
 
 Feedback: `feedback@oceanstate.live`
+
+## License
+
+Ocean State source code is licensed under `AGPL-3.0-or-later`.
+
+The Ocean State name, logo, visual identity, and branding are not licensed for
+unrestricted use. See `TRADEMARKS.md`.
