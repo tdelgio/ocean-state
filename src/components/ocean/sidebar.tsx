@@ -11,11 +11,12 @@ const navItems = [
   { href: "/forecast", label: "Forecast", description: "Models", icon: CalendarDays },
 ];
 
-export function Sidebar({ active }: { active: string }) {
+export function Sidebar({ active, islandLabel = "Maui" }: { active: string; islandLabel?: string }) {
+  const homeHref = islandLabel === "Oʻahu" ? "/home?island=oahu&shore=north" : "/home?island=maui&shore=north";
   return (
     <aside className="hidden w-64 shrink-0 border-r border-[rgba(9,76,96,0.12)] bg-[#f6fbfc] p-4 lg:block">
       <Link
-        href="/home"
+        href={homeHref}
         prefetch={false}
         className="flex items-center gap-3 rounded-2xl bg-[#f7fafa] p-3 ring-1 ring-[#e4e8ea]"
       >
@@ -27,17 +28,20 @@ export function Sidebar({ active }: { active: string }) {
             Ocean State
           </span>
           <span className="mt-0.5 flex items-center gap-1 text-[0.66rem] font-semibold uppercase tracking-[0.14em] text-[#0d5968]">
-            <MapPin className="size-3" />
-            Maui
+            Live Ocean
           </span>
         </span>
       </Link>
+      <div className="mt-2 flex items-center gap-1 px-3 text-[0.66rem] font-semibold uppercase tracking-[0.14em] text-[#0d5968]">
+        <MapPin className="size-3" />
+        <IslandLocationSwitch islandLabel={islandLabel} />
+      </div>
 
       <nav className="mt-6 space-y-2">
         {navItems.map((item) => (
           <Link
             key={item.href}
-            href={item.href}
+            href={item.href === "/home" ? homeHref : item.href}
             prefetch={false}
             className={cn(
               "flex items-center gap-3 rounded-2xl px-3 py-3 transition",
@@ -71,6 +75,29 @@ export function Sidebar({ active }: { active: string }) {
         <ThemeToggle />
       </div>
     </aside>
+  );
+}
+
+function IslandLocationSwitch({ islandLabel }: { islandLabel: string }) {
+  const isOahu = islandLabel === "Oʻahu";
+  return (
+    <span className="inline-flex items-center gap-1">
+      <Link
+        href="/home?island=maui&shore=north"
+        prefetch={false}
+        className={isOahu ? "border-b border-transparent opacity-70" : "border-b border-current"}
+      >
+        Maui
+      </Link>
+      <span className="opacity-45">/</span>
+      <Link
+        href="/home?island=oahu&shore=north"
+        prefetch={false}
+        className={isOahu ? "border-b border-current" : "border-b border-transparent opacity-70"}
+      >
+        Oʻahu
+      </Link>
+    </span>
   );
 }
 

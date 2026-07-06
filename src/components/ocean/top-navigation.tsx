@@ -7,31 +7,36 @@ import { cn } from "@/lib/utils";
 
 export function TopNavigation({
   active,
+  islandLabel = "Maui",
 }: {
   active: string;
+  islandLabel?: string;
 }) {
+  const homeHref = islandLabel === "Oʻahu" ? "/home?island=oahu&shore=north" : "/home?island=maui&shore=north";
   return (
     <header className="sticky top-0 z-30 px-3 py-3 backdrop-blur-sm lg:hidden">
       <div className="mx-auto flex w-full max-w-6xl items-start justify-between gap-3">
-        <Link href="/home" prefetch={false} className="flex items-center gap-2">
-          <span className="mt-0.5 grid size-8 place-items-center rounded-full border border-[#094c60]/12 bg-white/70 text-[#0d5968] dark:border-white/14 dark:bg-[#102a3a]">
+        <div className="flex items-center gap-2">
+          <Link href={homeHref} prefetch={false} className="mt-0.5 grid size-8 place-items-center rounded-full border border-[#094c60]/12 bg-white/70 text-[#0d5968] dark:border-white/14 dark:bg-[#102a3a]">
             <Waves className="size-4" />
-          </span>
+          </Link>
           <span className="leading-tight">
-            <span className="block text-sm font-semibold text-[#102b3a] dark:text-white">Ocean State</span>
+            <Link href={homeHref} prefetch={false} className="block text-sm font-semibold text-[#102b3a] dark:text-white">
+              Ocean State
+            </Link>
             <span className="mt-0.5 inline-flex items-center gap-1 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-[#0d5968] dark:text-[#9debf9]">
               <MapPin className="size-3" />
-              Maui
+              <IslandLocationSwitch islandLabel={islandLabel} />
             </span>
           </span>
-        </Link>
+        </div>
         <ThemeToggle compact />
       </div>
       <nav className="mx-auto mt-4 flex w-full max-w-6xl items-center justify-evenly gap-2 overflow-x-auto border-b border-[#094c60]/12 pb-1 dark:border-white/12">
         {navItems.map((item) => (
           <Link
             key={item.href}
-            href={item.href}
+            href={item.href === "/home" ? homeHref : item.href}
             prefetch={false}
             className={cn(
               "shrink-0 border-b-2 px-0 pb-2 text-[0.68rem] font-semibold uppercase tracking-[0.08em] transition",
@@ -48,5 +53,28 @@ export function TopNavigation({
         ))}
       </nav>
     </header>
+  );
+}
+
+function IslandLocationSwitch({ islandLabel }: { islandLabel: string }) {
+  const isOahu = islandLabel === "Oʻahu";
+  return (
+    <span className="inline-flex items-center gap-1">
+      <Link
+        href="/home?island=maui&shore=north"
+        prefetch={false}
+        className={isOahu ? "border-b border-transparent opacity-70" : "border-b border-current"}
+      >
+        Maui
+      </Link>
+      <span className="opacity-45">/</span>
+      <Link
+        href="/home?island=oahu&shore=north"
+        prefetch={false}
+        className={isOahu ? "border-b border-current" : "border-b border-transparent opacity-70"}
+      >
+        Oʻahu
+      </Link>
+    </span>
   );
 }

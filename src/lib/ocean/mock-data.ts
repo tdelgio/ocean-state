@@ -41,6 +41,28 @@ export const malikoNorthShoreRoute: RouteConfig = {
   },
 };
 
+export const oahuLiveOceanRoute: RouteConfig = {
+  id: "oahu-live-ocean",
+  name: "Oahu Live Ocean",
+  region: "Oahu",
+  start: { latitude: 21.665, longitude: -158.052 },
+  finish: { latitude: 21.282, longitude: -157.837 },
+  idealWindDirectionDeg: 70,
+  idealWindDirectionToleranceDeg: 45,
+  idealWindSpeedRangeKt: [12, 25],
+  maxComfortableGustKt: 32,
+  idealSwellDirectionDeg: 315,
+  idealSwellDirectionToleranceDeg: 70,
+  idealSwellHeightRangeFt: [2, 8],
+  preferredTideTrend: ["falling", "slack"],
+  stations: {
+    // Waimea Bay Waverider is the initial Oahu North Shore ocean-energy source.
+    primaryBuoyId: "51201",
+    tideStationId: "1612480",
+    nwsPoint: { latitude: 21.665, longitude: -158.052 },
+  },
+};
+
 const now = "2026-05-21T08:00:00-10:00";
 
 export const mockWindObservation: WindObservation = {

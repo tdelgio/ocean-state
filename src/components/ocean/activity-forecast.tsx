@@ -25,6 +25,7 @@ type ObservationMode = "shores" | "channels" | "harbors";
 type Activity = ObservationMode | "downwind" | "fishing";
 type Zone = "windward" | "leeward";
 type Shore = "north" | "south" | "west";
+type Island = "maui" | "oahu";
 type Channel = "pailolo" | "kaiwi" | "alenuihaha" | "offshore-waters";
 type InterIslandChannel = Exclude<Channel, "offshore-waters">;
 type Harbor = "kahului-harbor" | "maalaea-harbor" | "lahaina-harbor";
@@ -138,13 +139,15 @@ export function ActivityForecastPage({
 
 export function HomeForecastOverview({
   snapshot,
+  selectedIsland = "maui",
   selectedShore = "north",
 }: {
   snapshot: OceanConditionSnapshot;
+  selectedIsland?: Island;
   selectedShore?: Shore;
 }) {
   const shores: Shore[] = ["north", "south", "west"];
-  const shore = getShoreConfig(selectedShore);
+  const shore = getShoreConfig(selectedShore, selectedIsland);
   const shoreOcean = getShoreOcean(snapshot, selectedShore);
   const current = snapshot.shoreCurrents[selectedShore];
   const hasCurrent = current.speedKt !== null;
@@ -157,13 +160,16 @@ export function HomeForecastOverview({
           <ShoreChip
             key={item}
             shore={item}
+            island={selectedIsland}
             active={item === selectedShore}
-            href={`/home?shore=${item}`}
+            href={`/home?island=${selectedIsland}&shore=${item}`}
           />
         ))}
       </div>
 
-      {selectedShore === "north" || selectedShore === "south" ? (
+      {selectedIsland === "oahu" ? (
+        <OahuRunCards snapshot={snapshot} />
+      ) : selectedShore === "north" || selectedShore === "south" ? (
         <RunWindCard
           shore={selectedShore}
           points={
@@ -199,7 +205,7 @@ export function HomeForecastOverview({
         </div>
       </section>
 
-      <LiveCamsSection />
+      {selectedIsland === "maui" ? <LiveCamsSection /> : null}
     </div>
   );
 }
@@ -571,9 +577,21 @@ type RunWindPoint = {
 };
 
 function RunWindCard({ shore, points }: { shore: Shore; points: RunWindPoint[] }) {
+  const score = getRunWindScore(points);
+  const scoreClasses =
+    score === "Good"
+      ? "border-emerald-600/25 bg-emerald-50 text-emerald-800 dark:border-emerald-300/20 dark:bg-emerald-300/10 dark:text-emerald-200"
+      : score === "Fair"
+        ? "border-amber-600/25 bg-amber-50 text-amber-800 dark:border-amber-300/20 dark:bg-amber-300/10 dark:text-amber-200"
+        : "border-orange-700/25 bg-orange-50 text-orange-800 dark:border-orange-300/20 dark:bg-orange-300/10 dark:text-orange-200";
   return (
     <section className="mb-4 max-w-full rounded-2xl border border-[#094c60]/14 bg-white p-3 shadow-[0_10px_24px_rgba(7,35,45,0.06)] dark:border-white/12 dark:bg-[#091d2b]">
-      <h3 className="text-xl font-semibold text-[#102b3a] dark:text-[#f4fbff]">{shore === "north" ? "North Shore Run" : "South Side Run"}</h3>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-xl font-semibold text-[#102b3a] dark:text-[#f4fbff]">{shore === "north" ? "North Shore Run" : "South Side Run"}</h3>
+        <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em] ${scoreClasses}`}>
+          {score}
+        </span>
+      </div>
       <div className="mt-2 overflow-hidden rounded-xl border border-[#094c60]/14 bg-[#fbfaf6] dark:border-white/12 dark:bg-[#071d2a]">
         <div
           className="grid items-stretch"
@@ -622,6 +640,139 @@ function RunSourceDisclosure({ source }: { source: SourceLike }) {
         : "update unavailable";
 
   return <RunSourcePopover sourceName={sourceName} updated={updated} sourceType={source.source} sourceUrl={source.sourceUrl} />;
+}
+
+function getRunWindScore(points: RunWindPoint[]): "Good" | "Fair" | "Poor" {
+  const speeds = points
+    .map((point) => parseWindSpeedValue(point.wind.speed))
+    .filter((value): value is number => value !== null);
+  if (!speeds.length) return "Poor";
+  const average = speeds.reduce((sum, value) => sum + value, 0) / speeds.length;
+  if (average >= 14 && average <= 28) return "Good";
+  if (average >= 8) return "Fair";
+  return "Poor";
+}
+
+function parseWindSpeedValue(value: string) {
+  const numbers = value.match(/\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+  if (!numbers.length) return null;
+  return numbers.reduce((sum, number) => sum + number, 0) / numbers.length;
+}
+
+function OahuRunCards({ snapshot }: { snapshot: OceanConditionSnapshot }) {
+  const mokuleia = buildOahuRunCard({
+    name: "Mokulēʻia → Haleʻiwa",
+    shortName: "North Shore Advanced Run",
+    wind: snapshot.shoreObservations.north.wind,
+    swell: snapshot.shoreObservations.north.swell,
+    tide: snapshot.shoreTides.north,
+    current: snapshot.shoreCurrents.north,
+  });
+  const hkRun = buildOahuRunCard({
+    name: "Hawaii Kai → Kaimana Run",
+    shortName: "Live forecast",
+    wind: snapshot.shoreObservations.south.wind,
+    swell: snapshot.shoreObservations.west.swell,
+    tide: snapshot.shoreTides.south,
+    current: snapshot.shoreCurrents.south,
+  });
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <OahuRunCard run={hkRun} />
+      <OahuRunCard run={mokuleia} />
+    </div>
+  );
+}
+
+type OahuRunCardModel = {
+  name: string;
+  shortName: string;
+  wind: WindDisplay;
+  windSource: SourceLike;
+  swell: string;
+  swellSource: SourceLike;
+  tide: string;
+  tideSource: SourceLike;
+  current: string;
+  currentSource: SourceLike;
+};
+
+function buildOahuRunCard({
+  name,
+  shortName,
+  wind,
+  swell,
+  tide,
+  current,
+}: {
+  name: string;
+  shortName: string;
+  wind: OceanConditionSnapshot["wind"];
+  swell: OceanConditionSnapshot["swell"];
+  tide: OceanConditionSnapshot["tide"];
+  current: OceanConditionSnapshot["current"];
+}): OahuRunCardModel {
+  const windDisplay = windObservationToDisplay(wind);
+  return {
+    name,
+    shortName,
+    wind: windDisplay,
+    windSource: wind.source,
+    swell: formatRunSwell(swell),
+    swellSource: swell.source,
+    tide: formatRunTide(tide),
+    tideSource: tide.source,
+    current: current.speedKt !== null ? formatCurrentObservation(current) : "N/A",
+    currentSource: current.source,
+  };
+}
+
+function OahuRunCard({ run }: { run: OahuRunCardModel }) {
+  const tone = getWindToneClasses(getWindToneFromText(run.wind.speed, run.wind.gust));
+
+  return (
+    <article className="rounded-2xl border border-[#094c60]/14 bg-[#fbfaf6] p-4 dark:border-white/12 dark:bg-[#071d2a]">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#5f7078] dark:text-[#b7cbd3]">{run.shortName}</p>
+          <h3 className="mt-1 text-xl font-semibold text-[#102b3a] dark:text-[#f4fbff]">{run.name}</h3>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-xl border border-[#094c60]/12 bg-white/60 p-3 dark:border-white/10 dark:bg-[#102a3a]">
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f7078] dark:text-[#b7cbd3]">
+            Wind
+            <RunSourceDisclosure source={run.windSource} />
+          </div>
+          <div className="grid grid-cols-[2rem_1fr] items-center gap-2">
+            <WindArrow degrees={run.wind.degrees} compact className="text-[#17242c] dark:text-[#e8f4f7]" />
+            <div>
+              <p className="weather-data text-3xl leading-none text-[#17242c] dark:text-[#f4fbff]">{run.wind.direction}</p>
+              <p className={`weather-data mt-1 text-xl leading-none ${tone.speedText}`}>{run.wind.speed}</p>
+              {run.wind.gust !== "-" ? <p className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-[#b94a2f] dark:text-[#ffb19f]">Gust {run.wind.gust}</p> : null}
+            </div>
+          </div>
+        </div>
+        <OahuRunMetric label="Swell" value={run.swell} source={run.swellSource} />
+        <OahuRunMetric label="Tide" value={run.tide} source={run.tideSource} />
+        <OahuRunMetric label="Current" value={run.current} source={run.currentSource} />
+      </div>
+    </article>
+  );
+}
+
+function OahuRunMetric({ label, value, source }: { label: string; value: string; source: SourceLike }) {
+  return (
+    <div className="rounded-xl border border-[#094c60]/12 bg-white/60 p-3 dark:border-white/10 dark:bg-[#102a3a]">
+      <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f7078] dark:text-[#b7cbd3]">
+        {label}
+        <RunSourceDisclosure source={source} />
+      </div>
+      <p className="weather-data text-lg leading-snug text-[#102b3a] dark:text-[#f4fbff]">{value}</p>
+    </div>
+  );
 }
 
 function ChannelWindsSection({
@@ -1229,6 +1380,8 @@ function getCompactSourceName(source: string) {
 
 function getSourceDisplayName(source: SourceLike) {
   if (source.stationId === "51205") return "Pauwela";
+  if (source.stationId === "51201") return "Waimea Bay";
+  if (source.stationId === "51202") return "Mokapu";
   if (source.stationId === "51213") return "Lanai Offshore";
   if (source.stationId === "51001") return "Open Ocean NW";
   if (source.stationId === "51000") return "Northern Hawaii";
@@ -1237,7 +1390,10 @@ function getSourceDisplayName(source: SourceLike) {
   if (source.stationId?.toLowerCase() === "51wh0") return "WHOTS Offshore North";
   if (source.stationId === "DD-FAD") return "DD FAD / Opana Point";
   if (source.stationId === "KLIH1") return "Kahului";
+  if (source.stationId === "OOUH1") return "Honolulu Harbor";
   if (source.stationId === "1615680") return "Kahului tide";
+  if (source.stationId === "1612340") return "Honolulu tide";
+  if (source.stationId === "1612480") return "Mokuoloe tide";
   if (source.stationId === "TPT2797") return "Kihei tide";
   if (source.stationId === "TPT2799") return "Lahaina tide";
   if (source.stationId === "PHOG") return "Kahului Airport";
@@ -1565,6 +1721,21 @@ function formatTideHeight(tide: OceanConditionSnapshot["tide"]) {
     : "Prediction only";
 }
 
+function formatRunSwell(swell: OceanConditionSnapshot["swell"]) {
+  if (swell.heightFt === null && swell.dominantPeriodSec === null && !swell.directionCardinal) return "N/A";
+  const height = swell.heightFt !== null ? formatFeet(swell.heightFt) : "height N/A";
+  const period = swell.dominantPeriodSec !== null ? `${swell.dominantPeriodSec}s` : "period N/A";
+  const direction = swell.directionCardinal ?? "direction N/A";
+  const degrees = swell.directionDeg !== null ? ` · ${Math.round(swell.directionDeg)}°` : "";
+  return `${height} @ ${period} ${direction}${degrees}`;
+}
+
+function formatRunTide(tide: OceanConditionSnapshot["tide"]) {
+  const next = getNextTideEvent(tide);
+  const trend = formatTideTrend(tide.trend);
+  return next ? `${trend} · next ${next.type} ${formatTime(next.time)}` : trend;
+}
+
 function formatFeet(value: number) {
   return `${new Intl.NumberFormat("en-US", {
     maximumFractionDigits: 2,
@@ -1833,14 +2004,16 @@ type ShoreConfig = {
 
 function ShoreChip({
   shore,
+  island = "maui",
   active,
   href,
 }: {
   shore: Shore;
+  island?: Island;
   active: boolean;
   href: string;
 }) {
-  const config = getShoreConfig(shore);
+  const config = getShoreConfig(shore, island);
   return (
     <Link
       href={href}
@@ -1856,13 +2029,18 @@ function ShoreChip({
   );
 }
 
-function getShoreConfig(shore: Shore): ShoreConfig {
-  const configs: Record<Shore, ShoreConfig> = {
+function getShoreConfig(shore: Shore, island: Island = "maui"): ShoreConfig {
+  const mauiConfigs: Record<Shore, ShoreConfig> = {
     north: { id: "north", label: "North Shore", shortLabel: "North Shore", secondary: "Windward", zone: "windward" },
     south: { id: "south", label: "South Side", shortLabel: "South Side", secondary: "Leeward", zone: "leeward" },
     west: { id: "west", label: "West Side", shortLabel: "West Side", secondary: "Leeward", zone: "leeward" },
   };
-  return configs[shore];
+  const oahuConfigs: Record<Shore, ShoreConfig> = {
+    north: { id: "north", label: "North Shore", shortLabel: "North Shore", secondary: "Oʻahu", zone: "windward" },
+    south: { id: "south", label: "South Shore", shortLabel: "South Shore", secondary: "Oʻahu", zone: "leeward" },
+    west: { id: "west", label: "Windward / East", shortLabel: "Windward", secondary: "Oʻahu", zone: "windward" },
+  };
+  return island === "oahu" ? oahuConfigs[shore] : mauiConfigs[shore];
 }
 
 function getShoreOcean(snapshot: OceanConditionSnapshot, shore: Shore): ShoreOceanObservations {
@@ -1915,6 +2093,11 @@ function normalizeShore(value: string | string[] | undefined): Shore {
   return "north";
 }
 
+function normalizeIsland(value: string | string[] | undefined): Island {
+  if (Array.isArray(value)) return normalizeIsland(value[0]);
+  return value === "oahu" ? "oahu" : "maui";
+}
+
 function normalizeChannel(value: string | string[] | undefined): Channel {
   if (value === "kaiwi" || value === "alenuihaha" || value === "offshore-waters") return value;
   return "pailolo";
@@ -1925,7 +2108,7 @@ function normalizeHarbor(value: string | string[] | undefined): Harbor {
   return "kahului-harbor";
 }
 
-export { normalizeChannel, normalizeHarbor, normalizeShore, normalizeZone };
+export { normalizeChannel, normalizeHarbor, normalizeIsland, normalizeShore, normalizeZone };
 
 function buildFallbackForecast(zone: Zone) {
   const windward = [
