@@ -225,6 +225,7 @@ export function ExtendedForecastOverview({
               { id: "west", label: "West", href: "/forecast?region=west" },
             ]}
             activeId={selectedRegion}
+            fullWidth
           />
         </div>
         <div className="mt-4">
@@ -384,31 +385,16 @@ function ModelTimeline({
     zone,
     snapshot.marineForecastDays[zone],
   );
-  const today = days[0];
-  const todayWind = parseWind(today.wind);
-  const todayTone = getWindToneFromText(todayWind.speed, todayWind.gust);
 
   return (
     <section className="overflow-hidden rounded-[1.25rem] border border-[#d8dedf] bg-[#fbfaf6] p-2.5 shadow-[0_14px_32px_rgba(8,74,92,0.07)] dark:border-white/14 dark:bg-[#0b2230] sm:p-4">
-      <div className="mb-3 rounded-2xl border border-[#d8dedf] bg-white p-3 shadow-[0_8px_20px_rgba(7,35,45,0.04)] dark:border-white/12 dark:bg-[#102a3a]">
-        <p className="text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#536b73] dark:text-[#b7cbd3]">
-          Today
-        </p>
-        <div className="mt-2.5 grid gap-2.5 sm:grid-cols-[1fr_0.95fr]">
-          <ForecastWindCard wind={todayWind} tone={todayTone} hero />
-          <div className="grid gap-2">
-            <ForecastEnergyCard groundswell={today.groundswell} />
-            <ForecastRainCard rain={today.rain} detail={today.read} />
-          </div>
-        </div>
-      </div>
       <div className="mb-2 flex justify-end px-1">
         <span className="text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-[#70868e] dark:text-[#9fb4bc]">
           Swipe
         </span>
       </div>
       <div className="flex snap-x items-start gap-3 overflow-x-auto pb-1">
-        {days.map((day) => {
+        {days.map((day, index) => {
           const wind = parseWind(day.wind);
           const tone = getWindToneFromText(wind.speed, wind.gust);
           return (
@@ -417,11 +403,13 @@ function ModelTimeline({
               className="w-[15.5rem] shrink-0 snap-start self-start rounded-2xl border border-[#d8dedf] bg-white p-3 shadow-[0_8px_20px_rgba(7,35,45,0.04)] dark:border-white/12 dark:bg-[#102a3a] sm:w-[16.5rem]"
             >
               <div className="flex flex-col items-start gap-2 sm:flex-row sm:justify-between">
-                <h3 className="text-base font-semibold uppercase tracking-[0.04em] text-[#102b3a]">{day.day}</h3>
+                <h3 className="text-base font-semibold uppercase tracking-[0.04em] text-[#102b3a]">
+                  {index === 0 ? `TODAY ${getForecastDateLabel(day.day, index)}` : getForecastCardLabel(day.day, index)}
+                </h3>
               </div>
               <div className="mt-3 space-y-2">
                 <ForecastWindCard wind={wind} tone={tone} />
-                <ForecastEnergyCard groundswell={day.groundswell} />
+                <ForecastEnergyCard groundswell={day.groundswell} windSwell={day.bumpEnergy} />
                 <ForecastRainCard rain={day.rain} detail={day.read} />
               </div>
             </article>
@@ -456,20 +444,24 @@ function ForecastWindCard({ wind, tone, hero = false }: { wind: ReturnType<typeo
 
 function ForecastEnergyCard({
   groundswell,
+  windSwell,
 }: {
   groundswell: ReturnType<typeof formatMarineForecastEnergy>;
+  windSwell: ReturnType<typeof formatMarineForecastEnergy>;
 }) {
-  if (groundswell.height === "No data") return null;
+  const energy = groundswell.height !== "No data" ? groundswell : windSwell;
+  if (energy.height === "No data") return null;
+  const label = groundswell.height !== "No data" ? "Ground Swell" : "Wind Swell";
   return (
     <div className="rounded-xl border border-blue-900/12 bg-[#f4f8f9] p-3 dark:border-white/12 dark:bg-[#071d2a]">
       <div>
         <div>
           <div className="flex items-center gap-1.5 text-[0.58rem] font-semibold uppercase tracking-[0.08em] text-[#61747c]">
             <Waves className="size-3.5" />
-            Ground Swell
+            {label}
           </div>
-          <p className="weather-data mt-1 text-xl leading-none text-[#102b3a]">{groundswell.height}</p>
-          <p className="mt-1 text-xs font-semibold text-[#61747c]">{groundswell.meta}</p>
+          <p className="weather-data mt-1 text-xl leading-none text-[#102b3a]">{energy.height}</p>
+          <p className="mt-1 text-xs font-semibold text-[#61747c]">{energy.meta}</p>
         </div>
       </div>
     </div>
@@ -557,18 +549,20 @@ function LiveDataRow({ item }: { item: LiveDataListItem }) {
 function SegmentedTabs({
   items,
   activeId,
+  fullWidth = false,
 }: {
   items: Array<{ id: string; label: string; href: string }>;
   activeId: string;
+  fullWidth?: boolean;
 }) {
   return (
-    <div className="inline-flex w-fit max-w-full gap-2 overflow-x-auto rounded-2xl border border-[#d8dedf] bg-[#f8fcfd] p-1 dark:border-white/12 dark:bg-[#0b2230]">
+    <div className={`${fullWidth ? "flex w-full" : "inline-flex w-fit"} max-w-full gap-1 overflow-x-auto rounded-2xl border border-[#d8dedf] bg-[#f8fcfd] p-1 dark:border-white/12 dark:bg-[#0b2230]`}>
       {items.map((item) => (
         <Link
           key={item.id}
           href={item.href}
           prefetch={false}
-          className={`shrink-0 rounded-xl px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${
+          className={`${fullWidth ? "min-w-0 flex-1 text-center" : "shrink-0"} rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-[0.11em] transition sm:px-4 sm:tracking-[0.14em] ${
             item.id === activeId
               ? "bg-[#17242c] text-white shadow-[0_8px_18px_rgba(7,35,45,0.12)] dark:bg-white dark:text-[#071723]"
               : "text-[#526a73] hover:bg-white hover:text-[#17242c] dark:text-[#b7cbd3] dark:hover:bg-[#102a3a] dark:hover:text-white"
@@ -1985,40 +1979,67 @@ function formatMarineForecastEnergy(energy?: MarineForecastDay["bumpEnergy"]) {
 
 function formatForecastDayLabel(label: string, index = 0) {
   const normalized = label.trim().replace(/\s+/g, " ").toUpperCase();
-  const date = getMarineForecastDate(normalized, index);
+  const weekday = getWeekdayToken(normalized);
+  const date = getMarineForecastDate(weekday, index);
   const dateLabel = new Intl.DateTimeFormat("en-US", {
     month: "2-digit",
     day: "2-digit",
     timeZone: "Pacific/Honolulu",
   }).format(date);
-  const dayLabel = normalized === "TODAY"
+  const dayLabel = weekday === "TODAY"
     ? new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "Pacific/Honolulu" }).format(date).toUpperCase()
-    : normalized.slice(0, 3);
+    : weekday.slice(0, 3);
   return `${dayLabel} ${dateLabel}`;
 }
 
+function getForecastCardLabel(label: string, index = 0) {
+  return formatForecastDayLabel(label, index);
+}
+
+function getForecastDateLabel(label: string, index = 0) {
+  const weekday = getWeekdayToken(label.trim().replace(/\s+/g, " ").toUpperCase());
+  const date = getMarineForecastDate(weekday, index);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: "Pacific/Honolulu",
+  }).format(date);
+}
+
+function getWeekdayToken(label: string) {
+  return label.split(/\s+/)[0] ?? label;
+}
+
 function getMarineForecastDate(label: string, index: number) {
-  const now = new Date();
-  const hawaiiToday = new Date(
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: "Pacific/Honolulu",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(now),
-  );
+  const hawaiiToday = getHawaiiTodayDate();
   if (label === "TODAY") return hawaiiToday;
   const weekdays = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
   const target = weekdays.indexOf(label);
   if (target < 0) {
     const fallback = new Date(hawaiiToday);
-    fallback.setDate(fallback.getDate() + index);
+    fallback.setUTCDate(fallback.getUTCDate() + index);
     return fallback;
   }
-  const delta = (target - hawaiiToday.getDay() + 7) % 7;
+  const delta = (target - hawaiiToday.getUTCDay() + 7) % 7;
   const date = new Date(hawaiiToday);
-  date.setDate(date.getDate() + delta);
+  date.setUTCDate(date.getUTCDate() + delta);
   return date;
+}
+
+function getHawaiiTodayDate() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Pacific/Honolulu",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+    .formatToParts(new Date())
+    .reduce<Record<string, string>>((acc, part) => {
+      if (part.type !== "literal") acc[part.type] = part.value;
+      return acc;
+    }, {});
+
+  return new Date(Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), 12));
 }
 
 function range(values: number[]) {
