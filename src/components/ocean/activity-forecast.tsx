@@ -194,9 +194,9 @@ export function HomeForecastOverview({
           {hasLiveWind ? <LiveWindCard wind={wind} source={shoreOcean.wind.source} /> : null}
           <LiveSeaInlineCard shoreOcean={shoreOcean} />
         </div>
-        <div className={`mt-4 grid gap-4 ${hasCurrent ? "lg:grid-cols-3" : "lg:grid-cols-2"}`}>
-          <TideCard tide={snapshot.shoreTides[selectedShore]} />
+        <div className={`mt-4 grid gap-4 ${hasCurrent ? "lg:grid-cols-2" : ""}`}>
           {hasCurrent ? <CurrentCard current={current} /> : null}
+          <TideCard tide={snapshot.shoreTides[selectedShore]} />
         </div>
       </section>
     </div>
@@ -212,11 +212,11 @@ export function ExtendedForecastOverview({
 }) {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
-      <section className="ocean-card rounded-[1.5rem] border p-4 sm:p-5">
-        <h1 className="text-3xl font-semibold uppercase tracking-[0.04em] text-[#102b3a]">
+      <section className="ocean-card rounded-[1.5rem] border p-3.5 sm:p-5">
+        <h1 className="text-2xl font-semibold uppercase tracking-[0.04em] text-[#102b3a] sm:text-3xl">
           Forecast
         </h1>
-        <div className="mt-4">
+        <div className="mt-3">
           <SegmentedTabs
             items={[
               { id: "north", label: "North", href: "/forecast?region=north" },
@@ -227,7 +227,7 @@ export function ExtendedForecastOverview({
             activeId={selectedRegion}
           />
         </div>
-        <div className="mt-5">
+        <div className="mt-4">
           <ModelTimeline snapshot={snapshot} region={selectedRegion} />
         </div>
       </section>
@@ -338,6 +338,7 @@ function ChannelsMode({
           Offshore Waters
         </Link>
       </div>
+      <ActiveMarineAlerts alerts={snapshot.alerts} />
       {selectedChannel === "offshore-waters" ? (
         <OffshoreWatersSection snapshot={snapshot} />
       ) : (
@@ -388,12 +389,12 @@ function ModelTimeline({
   const todayTone = getWindToneFromText(todayWind.speed, todayWind.gust);
 
   return (
-    <section className="overflow-hidden rounded-[1.25rem] border border-[#d8dedf] bg-[#fbfaf6] p-3 shadow-[0_14px_32px_rgba(8,74,92,0.07)] dark:border-white/14 dark:bg-[#0b2230] sm:p-4">
-      <div className="mb-4 rounded-2xl border border-[#d8dedf] bg-white p-3 shadow-[0_8px_20px_rgba(7,35,45,0.04)] dark:border-white/12 dark:bg-[#102a3a]">
-        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[#536b73] dark:text-[#b7cbd3]">
+    <section className="overflow-hidden rounded-[1.25rem] border border-[#d8dedf] bg-[#fbfaf6] p-2.5 shadow-[0_14px_32px_rgba(8,74,92,0.07)] dark:border-white/14 dark:bg-[#0b2230] sm:p-4">
+      <div className="mb-3 rounded-2xl border border-[#d8dedf] bg-white p-3 shadow-[0_8px_20px_rgba(7,35,45,0.04)] dark:border-white/12 dark:bg-[#102a3a]">
+        <p className="text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#536b73] dark:text-[#b7cbd3]">
           Today
         </p>
-        <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_0.95fr]">
+        <div className="mt-2.5 grid gap-2.5 sm:grid-cols-[1fr_0.95fr]">
           <ForecastWindCard wind={todayWind} tone={todayTone} hero />
           <div className="grid gap-2">
             <ForecastEnergyCard groundswell={today.groundswell} />
@@ -413,7 +414,7 @@ function ModelTimeline({
           return (
             <article
               key={day.day}
-              className="w-[17rem] shrink-0 snap-start self-start rounded-2xl border border-[#d8dedf] bg-white p-3 shadow-[0_8px_20px_rgba(7,35,45,0.04)] dark:border-white/12 dark:bg-[#102a3a] lg:w-[18rem]"
+              className="w-[15.5rem] shrink-0 snap-start self-start rounded-2xl border border-[#d8dedf] bg-white p-3 shadow-[0_8px_20px_rgba(7,35,45,0.04)] dark:border-white/12 dark:bg-[#102a3a] sm:w-[16.5rem]"
             >
               <div className="flex flex-col items-start gap-2 sm:flex-row sm:justify-between">
                 <h3 className="text-base font-semibold uppercase tracking-[0.04em] text-[#102b3a]">{day.day}</h3>
@@ -434,7 +435,7 @@ function ModelTimeline({
 function ForecastWindCard({ wind, tone, hero = false }: { wind: ReturnType<typeof parseWind>; tone: WindTone; hero?: boolean }) {
   const classes = getWindToneClasses(tone);
   return (
-    <div className={`rounded-xl border border-[#094c60]/10 bg-[#fbfaf6] p-3 dark:border-white/12 dark:bg-[#071d2a] ${hero ? "sm:p-4" : ""}`}>
+    <div className={`rounded-xl border border-[#094c60]/10 bg-[#fbfaf6] p-3 dark:border-white/12 dark:bg-[#071d2a] ${hero ? "sm:p-3.5" : ""}`}>
       <div className="flex items-center gap-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-[#6b7d84]">
         <Navigation className="size-3.5" />
         Wind
@@ -442,8 +443,8 @@ function ForecastWindCard({ wind, tone, hero = false }: { wind: ReturnType<typeo
       <div className="mt-2 flex items-center gap-2">
         <WindArrow degrees={cardinalToDegrees(wind.direction)} large={hero} className={classes.text} />
         <div className="min-w-0">
-          <p className={`weather-data leading-none ${classes.text} ${hero ? "text-5xl" : "text-2xl"}`}>{wind.direction}</p>
-          <p className={`weather-data mt-1 leading-tight ${classes.speedText} ${hero ? "text-2xl" : "text-base"}`}>{wind.speed}</p>
+          <p className={`weather-data leading-none ${classes.text} ${hero ? "text-4xl sm:text-5xl" : "text-2xl"}`}>{wind.direction}</p>
+          <p className={`weather-data mt-1 leading-tight ${classes.speedText} ${hero ? "text-xl sm:text-2xl" : "text-base"}`}>{wind.speed}</p>
           {wind.gust !== "-" ? (
             <p className={`mt-1 w-fit ${classes.badge} weather-data`}>gust {wind.gust}</p>
           ) : null}
@@ -588,9 +589,9 @@ type RunWindPoint = {
 
 function RunWindCard({ shore, points }: { shore: Shore; points: RunWindPoint[] }) {
   return (
-    <section className="mb-4 max-w-full rounded-2xl border border-[#094c60]/14 bg-white p-3 shadow-[0_10px_24px_rgba(7,35,45,0.06)] dark:border-white/12 dark:bg-[#091d2b]">
-      <h3 className="text-xl font-semibold text-[#102b3a] dark:text-[#f4fbff]">{shore === "north" ? "North Shore Run" : "South Side Run"}</h3>
-      <div className="mt-2 overflow-hidden rounded-xl border border-[#094c60]/14 bg-[#fbfaf6] dark:border-white/12 dark:bg-[#071d2a]">
+    <section className="mb-4 max-w-full rounded-2xl border border-[#094c60]/14 bg-white p-2.5 shadow-[0_10px_24px_rgba(7,35,45,0.06)] dark:border-white/12 dark:bg-[#091d2b] sm:p-3">
+      <h3 className="px-0.5 text-xl font-semibold leading-tight text-[#102b3a] dark:text-[#f4fbff]">{shore === "north" ? "North Shore Run" : "South Side Run"}</h3>
+      <div className="mt-1.5 overflow-hidden rounded-xl border border-[#094c60]/14 bg-[#fbfaf6] dark:border-white/12 dark:bg-[#071d2a]">
         <div
           className="grid items-stretch"
           style={{ gridTemplateColumns: `repeat(${points.length}, minmax(0, 1fr))` }}
@@ -600,10 +601,10 @@ function RunWindCard({ shore, points }: { shore: Shore; points: RunWindPoint[] }
             return (
               <div
                 key={point.label}
-                className={`min-w-0 px-1.5 py-3 sm:px-2 ${index > 0 ? "border-l border-[#094c60]/16 dark:border-white/16" : ""}`}
+                className={`min-w-0 px-1.5 py-2.5 sm:px-2 ${index > 0 ? "border-l border-[#094c60]/16 dark:border-white/16" : ""}`}
               >
                 <div className="mx-auto grid w-fit min-w-0 grid-cols-[1.75rem_minmax(0,1fr)] items-center gap-x-1.5">
-                  <div className="col-start-2 flex min-h-7 items-center gap-1">
+                  <div className="col-start-2 flex min-h-6 items-center gap-1">
                     <p className="text-[0.68rem] font-semibold uppercase leading-4 tracking-[0.06em] text-[#30444c] dark:text-[#d8e7ec] sm:text-[0.74rem] sm:tracking-[0.08em]">
                       {point.label}
                     </p>
@@ -704,7 +705,9 @@ function OffshoreBuoyCard({ buoy }: { buoy: OceanConditionSnapshot["offshoreObse
       <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h4 className="text-lg font-semibold text-[#102b3a]">{getOffshoreDisplayName(buoy.id)}</h4>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-[0.1em] text-[#61747c]">{buoy.purpose}</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-[#61747c]">
+            {getOffshoreSubtitle(buoy.id)}
+          </p>
         </div>
         <SourceFreshnessBadge source={buoy.swell.source} compact />
       </div>
@@ -730,6 +733,17 @@ function getOffshoreDisplayName(id: OceanConditionSnapshot["offshoreObservations
     "lanai-offshore": "Lanai Offshore",
   };
   return names[id];
+}
+
+function getOffshoreSubtitle(id: OceanConditionSnapshot["offshoreObservations"][keyof OceanConditionSnapshot["offshoreObservations"]]["id"]) {
+  const subtitles = {
+    "open-ocean-nw": "NW swell before Maui",
+    "northern-hawaii": "North-side open water",
+    "southeast-hawaii": "SE offshore waters",
+    "southwest-hawaii": "SW offshore waters",
+    "lanai-offshore": "Molokai to Lanai waters",
+  };
+  return subtitles[id];
 }
 
 function ChannelWindCard({
@@ -766,7 +780,6 @@ function ChannelWindCard({
       </div>
       <div className={`mt-4 rounded-2xl border p-4 ${classes.card}`}>
         <div className="mb-3 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <CategoryPill label="Channel Forecast" tone="wind" />
           <SourceFreshnessBadge source={source} compact />
         </div>
         <div className="flex items-center gap-4">
@@ -788,9 +801,6 @@ function ChannelWindCard({
         <ChannelQuickMetric icon={CloudRain} label="Squalls" value={rainSummary ?? "Forecast"} detail="NOAA channel forecast" />
       </div>
       <ChannelExtendedForecast days={forecastDays} />
-      <p className="mt-3 text-sm font-semibold leading-5 text-[#536b73]">
-        {getChannelContext(wind, formattedBumpEnergy.height)}
-      </p>
     </article>
   );
 }
@@ -802,9 +812,9 @@ function ChannelBumpMetric({ value, detail }: { value: string; detail: string })
         <Waves className="size-3.5 shrink-0" />
         Bumps
       </p>
-      <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[#102b3a] dark:text-[#e9f8fb]">
-        <span className="weather-data text-2xl leading-none">{value}</span>
-        <span className="text-sm font-semibold leading-none text-[#536b73] dark:text-[#b7cbd3]">{detail}</span>
+      <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-blue-950 dark:text-[#e9f8fb]">
+        <span className="weather-data text-3xl leading-none">{value}</span>
+        <span className="weather-data text-base leading-none">{detail}</span>
       </div>
     </div>
   );
@@ -813,6 +823,7 @@ function ChannelBumpMetric({ value, detail }: { value: string; detail: string })
 function ChannelCurrentMetric({ current }: { current: OceanConditionSnapshot["current"] }) {
   const hasCurrent = current.speedKt !== null;
   const direction = current.directionCardinal ?? "";
+  const trend = current.trend !== "unknown" ? current.trend : "model";
   return (
     <div className="rounded-xl border border-[#094c60]/10 bg-white/55 px-3 py-3 dark:border-white/12 dark:bg-[#102a3a]">
       <p className="inline-flex items-center gap-1.5 text-[0.64rem] font-semibold uppercase tracking-[0.1em] text-[#536b73] dark:text-[#b7cbd3]">
@@ -820,11 +831,18 @@ function ChannelCurrentMetric({ current }: { current: OceanConditionSnapshot["cu
         Current
       </p>
       <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[#102b3a] dark:text-[#e9f8fb]">
-        <span className="weather-data text-2xl leading-none">{hasCurrent ? `${current.speedKt} kt` : "No model"}</span>
-        {hasCurrent && direction ? <span className="weather-data text-2xl leading-none">{direction}</span> : null}
+        {hasCurrent ? (
+          <>
+            <span className="weather-data text-3xl leading-none">{current.speedKt}</span>
+            <span className="weather-data text-lg leading-none">kt</span>
+            {direction ? <span className="weather-data text-2xl leading-none">{direction}</span> : null}
+          </>
+        ) : (
+          <span className="weather-data text-xl leading-none">No model</span>
+        )}
       </div>
       <p className="mt-1 text-xs font-semibold leading-4 text-[#536b73] dark:text-[#b7cbd3]">
-        {hasCurrent ? "PacIOOS surface model" : "PacIOOS unavailable"}
+        {hasCurrent ? `${trend} · PacIOOS surface model` : "PacIOOS unavailable"}
       </p>
     </div>
   );
@@ -838,8 +856,8 @@ function ChannelForecastBumpMetric({ value, detail }: { value: string; detail: s
           Bumps
       </p>
       <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[#102b3a] dark:text-[#e9f8fb]">
-        <span className="weather-data text-base leading-none">{value}</span>
-        <span className="text-xs font-semibold text-[#536b73] dark:text-[#b7cbd3]">{detail}</span>
+        <span className="weather-data text-xl leading-none">{value}</span>
+        <span className="weather-data text-sm leading-none text-[#536b73] dark:text-[#b7cbd3]">{detail}</span>
       </div>
     </div>
   );
@@ -907,14 +925,21 @@ function ChannelExtendedForecast({ days }: { days: MarineForecastDay[] }) {
                   </div>
                 </div>
               </div>
-              <div className="px-3 py-3">
-                <ChannelForecastBumpMetric value={bump.height} detail={bump.meta} />
-                {groundswell.height !== "No data" ? (
-                  <p className="mt-2 text-xs font-semibold text-[#536b73] dark:text-[#b7cbd3]">
-                    Ground swell {groundswell.height} · {groundswell.meta}
-                  </p>
-                ) : null}
-                <p className="mt-2 flex items-start gap-1.5 text-xs font-semibold leading-4 text-[#536b73] dark:text-[#b7cbd3]">
+              <div className="space-y-2 px-3 py-3">
+                <div className="rounded-xl border border-blue-900/10 bg-[#eaf4fb] px-3 py-2.5 dark:border-blue-200/12 dark:bg-[#102f46]">
+                  <ChannelForecastBumpMetric value={bump.height} detail={bump.meta} />
+                  {groundswell.height !== "No data" ? (
+                    <div className="mt-2 border-t border-blue-900/10 pt-2 dark:border-blue-200/12">
+                      <p className="text-[0.58rem] font-semibold uppercase tracking-[0.1em] text-[#536b73] dark:text-[#b7cbd3]">
+                        Ground swell
+                      </p>
+                      <p className="weather-data mt-1 text-sm leading-none text-[#102b3a] dark:text-[#e9f8fb]">
+                        {groundswell.height} · {groundswell.meta}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+                <p className="flex items-start gap-1.5 rounded-xl border border-teal-900/10 bg-[#eff9f6] px-3 py-2 text-xs font-semibold leading-4 text-[#536b73] dark:border-teal-200/12 dark:bg-[#0e2f33] dark:text-[#b7cbd3]">
                   <CloudRain className="mt-0.5 size-3.5 shrink-0 text-teal-700 dark:text-teal-200" />
                   <span className="line-clamp-2">{day.rainSummary ?? "No rain detail"}</span>
                 </p>
@@ -1020,6 +1045,26 @@ function HarborMarineAlerts({ alerts }: { alerts: OceanConditionSnapshot["alerts
   );
 }
 
+function ActiveMarineAlerts({ alerts }: { alerts: OceanConditionSnapshot["alerts"] }) {
+  if (!alerts.length) return null;
+
+  return (
+    <div className="rounded-2xl border border-orange-700/25 bg-orange-50 px-4 py-3 text-[#7c2d12] dark:border-orange-300/22 dark:bg-orange-950/25 dark:text-orange-100">
+      <p className="flex items-center gap-1.5 text-[0.64rem] font-semibold uppercase tracking-[0.1em]">
+        <AlertTriangle className="size-3.5" />
+        Marine advisory
+      </p>
+      <ul className="mt-2 space-y-1">
+        {alerts.slice(0, 2).map((alert) => (
+          <li key={alert.id} className="text-sm font-semibold leading-5">
+            {alert.event || alert.headline}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function HarborWindsSection({
   selectedHarbor,
   harbors,
@@ -1080,9 +1125,9 @@ function HarborWindCard({
         </div>
       </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        <ConditionMetric icon={Navigation} label="Launch / Entry" value={bumpEnergy.height} detail={`${bumpEnergy.period} · ${bumpEnergy.direction} · swell direction for entry`} />
-        <ConditionMetric icon={Waves} label="Tide" value={formatTideTrend(tide.trend)} detail={`${formatNextTide(tide)} · ${tide.stationName}`} source={tide.source} />
-        <ConditionMetric icon={CloudRain} label="Visibility" value={formatRain(forecastWindows)} detail={getRainImpact(forecastWindows)} source={forecastWindows[0]?.source} />
+        <ConditionMetric icon={Navigation} label="Entry swell" value={bumpEnergy.height} detail={`${bumpEnergy.period} · ${bumpEnergy.direction}`} />
+        <ConditionMetric icon={Waves} label="Tide" value={formatTideTrend(tide.trend)} detail={formatNextTide(tide)} source={tide.source} />
+        <ConditionMetric icon={CloudRain} label="Rain / Visibility" value={formatRain(forecastWindows)} detail={getRainImpact(forecastWindows)} source={forecastWindows[0]?.source} />
       </div>
       <HarborMarineAlerts alerts={snapshot.alerts} />
       <HarborVesselActivity harborName={harbor.name} vessels={vessels} />
@@ -1222,6 +1267,7 @@ function LiveSeaInlineCard({
 
 function CurrentCard({ current }: { current: OceanConditionSnapshot["current"] }) {
   const label = getCurrentCardLabel(current.source);
+  const currentValue = getCurrentDisplayParts(current);
   return (
     <section className="ocean-card rounded-[1.5rem] border border-blue-800/18 bg-[#dbeafe] p-5 dark:border-blue-200/20 dark:bg-[#0c2940]">
       <div className="flex items-center gap-2">
@@ -1229,9 +1275,11 @@ function CurrentCard({ current }: { current: OceanConditionSnapshot["current"] }
         <CategoryPill label={label} tone="tide" />
         <RunSourceDisclosure source={current.source} />
       </div>
-      <p className="weather-data mt-5 text-4xl leading-none text-blue-950">
-        {formatCurrentObservation(current)}
-      </p>
+      <div className="mt-5 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-blue-950">
+        <span className="weather-data text-4xl leading-none">{currentValue.speed}</span>
+        {currentValue.unit ? <span className="weather-data text-2xl leading-none">{currentValue.unit}</span> : null}
+        {currentValue.direction ? <span className="weather-data text-3xl leading-none">{currentValue.direction}</span> : null}
+      </div>
       <p className="mt-3 text-sm capitalize leading-6 text-blue-900/75">
         {current.trend === "unknown" ? getCurrentSourceLabel(current.source) : `${current.trend} · ${getCurrentSourceLabel(current.source)}`}
       </p>
@@ -1669,13 +1717,6 @@ function getOffshoreChannelInsight(buoy: OceanConditionSnapshot["offshoreObserva
   return null;
 }
 
-function getChannelContext(wind: WindDisplay, bumpHeight: string) {
-  const speed = extractMaxNumber(wind.speed) ?? 0;
-  if (speed >= 22) return `Strong ${wind.direction} channel flow. Wind sea dominating the channel.`;
-  if (bumpHeight !== "No live buoy data") return "Short-period wind swell active in the channel.";
-  return "Channel state tied to live wind and available buoy energy.";
-}
-
 function getHarborContext(harbor: HarborWindObservation, wind: WindDisplay) {
   const speed = extractMaxNumber(wind.speed) ?? 0;
   if (speed >= 18) return `${harbor.name} has active harbor wind and likely chop near entries.`;
@@ -1712,6 +1753,18 @@ function formatCurrentObservation(current: OceanConditionSnapshot["current"]) {
   if (current.speedKt === null) return "No NOAA current";
   const direction = current.directionCardinal ? ` ${current.directionCardinal}` : "";
   return `${current.speedKt} kt${direction}`;
+}
+
+function getCurrentDisplayParts(current: OceanConditionSnapshot["current"]) {
+  if (current.speedKt === null) {
+    return { speed: "No current", unit: "", direction: "" };
+  }
+
+  return {
+    speed: String(current.speedKt),
+    unit: "kt",
+    direction: current.directionCardinal ?? "",
+  };
 }
 
 function formatTideHeight(tide: OceanConditionSnapshot["tide"]) {
@@ -1762,8 +1815,8 @@ function getRainImpact(windows: ForecastWindow[]) {
   if (Number.isFinite(rainNumber) && rainNumber >= 40)
     return "Elevated squall risk";
   if (Number.isFinite(rainNumber) && rainNumber >= 25)
-    return "Watch passing bands";
-  return "Lower rain impact";
+    return "Passing showers possible";
+  return "Low shower impact";
 }
 
 function getWindToneFromText(speed: string, gust?: string): WindTone {

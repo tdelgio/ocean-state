@@ -4,6 +4,14 @@ import type { ForecastWindow, GeoPoint, SourceMeta, WeatherAlert, WindObservatio
 
 const NWS_API_URL = "https://api.weather.gov";
 const NWS_FETCH_TIMEOUT_MS = 4500;
+const MAUI_MARINE_ALERT_ZONES = [
+  "PHZ116",
+  "PHZ117",
+  "PHZ118",
+  "PHZ119",
+  "PHZ120",
+  "PHZ121",
+] as const;
 
 interface NwsPointResponse {
   properties?: {
@@ -68,7 +76,13 @@ export async function getNwsAlerts(point: GeoPoint): Promise<WeatherAlert[]> {
     const pointResponse = await fetchNwsPoint(point);
     const zone = pointResponse.properties?.forecastZone?.split("/").at(-1);
     const county = pointResponse.properties?.county?.split("/").at(-1);
-    const zones = [zone, county].filter((value): value is string => Boolean(value));
+    const zones = Array.from(
+      new Set([
+        zone,
+        county,
+        ...MAUI_MARINE_ALERT_ZONES,
+      ].filter((value): value is string => Boolean(value))),
+    );
     const url = zones.length ? `${NWS_API_URL}/alerts/active?zone=${zones.join(",")}` : `${NWS_API_URL}/alerts/active?point=${point.latitude},${point.longitude}`;
     const response = await fetch(url, {
       headers: { Accept: "application/geo+json" },
