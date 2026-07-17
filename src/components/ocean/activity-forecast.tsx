@@ -11,7 +11,6 @@ import {
   Waves,
 } from "lucide-react";
 
-import { LiveCamsSection } from "@/components/live-cams/LiveCamsSection";
 import { RunSourcePopover } from "@/components/ocean/run-source-popover";
 import type {
   ForecastRegionId,
@@ -200,8 +199,6 @@ export function HomeForecastOverview({
           {hasCurrent ? <CurrentCard current={current} /> : null}
         </div>
       </section>
-
-      <LiveCamsSection />
     </div>
   );
 }
