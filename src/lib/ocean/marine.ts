@@ -88,6 +88,7 @@ function parseZone(text: string, zoneId: string, source: SourceMeta): MarineFore
       return {
         dayLabel: dayLabel.trim(),
         seas: body.match(/Seas\s+([^.]*)\./i)?.[1]?.trim() ?? null,
+        wind: parseForecastWind(body, source),
         bumpEnergy: strongestEnergy(waveComponents.filter((wave) => wave.periodSec >= 4 && wave.periodSec <= 9)),
         groundswell: strongestEnergy(waveComponents.filter((wave) => wave.periodSec >= 10)),
         rainSummary: parseRainSummary(body),
@@ -124,6 +125,7 @@ function parseChannelForecast(
     wind,
     bumpEnergy,
     rainSummary: parseRainSummary(body),
+    forecastDays: parseZone(text, config.zoneId, source),
   };
 }
 
@@ -132,9 +134,11 @@ function parseForecastWind(body: string, source: SourceMeta): WindObservation {
   const directionCardinal = match ? normalizeDirection(match[1]) : null;
   const speeds = match ? [...match[2].matchAll(/\d+(?:\.\d+)?/g)].map((value) => Number.parseFloat(value[0])) : [];
   const speedKt = speeds.length ? Math.max(...speeds) : null;
+  const speedRangeKt = speeds.length >= 2 ? ([Math.min(...speeds), Math.max(...speeds)] as [number, number]) : null;
   return {
     speedKt,
     gustKt: null,
+    speedRangeKt,
     directionDeg: directionCardinal ? cardinalToDegrees(directionCardinal) : null,
     directionCardinal,
     source,
@@ -161,6 +165,7 @@ function createUnavailableChannelForecast(
     wind: { speedKt: null, gustKt: null, directionDeg: null, directionCardinal: null, source },
     bumpEnergy: { heightFt: null, periodSec: null, directionCardinal: null },
     rainSummary: null,
+    forecastDays: [],
   };
 }
 

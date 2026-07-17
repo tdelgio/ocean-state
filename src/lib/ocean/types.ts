@@ -23,6 +23,7 @@ export interface GeoPoint {
 export interface WindObservation {
   speedKt: number | null;
   gustKt: number | null;
+  speedRangeKt?: [number, number] | null;
   directionDeg: number | null;
   directionCardinal: string | null;
   source: SourceMeta;
@@ -66,6 +67,7 @@ export interface SeaEnergyObservation {
 }
 
 export type MauiShoreId = "north" | "south" | "west";
+export type ForecastRegionId = "north" | "south" | "east" | "west";
 
 export interface ShoreOceanObservations {
   shoreId: MauiShoreId;
@@ -143,6 +145,7 @@ export interface MarineForecastEnergy {
 export interface MarineForecastDay {
   dayLabel: string;
   seas: string | null;
+  wind: WindObservation;
   bumpEnergy: MarineForecastEnergy;
   groundswell: MarineForecastEnergy;
   rainSummary: string | null;
@@ -155,6 +158,7 @@ export interface ChannelForecastObservation {
   wind: WindObservation;
   bumpEnergy: MarineForecastEnergy;
   rainSummary: string | null;
+  forecastDays: MarineForecastDay[];
 }
 
 export interface WeatherAlert {
@@ -209,9 +213,10 @@ export interface OceanConditionSnapshot {
   coastalWinds: CoastalWindObservation[];
   harborWinds: HarborWindObservation[];
   forecastWindows: ForecastWindow[];
-  shoreForecastWindows: Record<MauiShoreId, ForecastWindow[]>;
+  shoreForecastWindows: Record<ForecastRegionId, ForecastWindow[]>;
   marineForecastDays: Record<"windward" | "leeward", MarineForecastDay[]>;
   channelForecasts: Record<ChannelForecastObservation["channelId"], ChannelForecastObservation>;
+  channelCurrents: Record<ChannelForecastObservation["channelId"], CurrentObservation>;
   alerts: WeatherAlert[];
   sources: SourceMeta[];
 }

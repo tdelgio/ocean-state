@@ -10,6 +10,7 @@ const METERS_PER_SECOND_TO_KNOTS = 1.94384;
 export async function getPacioosSurfaceCurrent(
   point: GeoPoint,
   stationName: string,
+  stationId = `pacioos-roms-${stationName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`,
 ): Promise<CurrentObservation> {
   const sourceUrl = PACIOOS_ROMS_SOURCE_URL;
   try {
@@ -30,7 +31,7 @@ export async function getPacioosSurfaceCurrent(
     const normalizedDirection = (directionDeg + 360) % 360;
 
     return {
-      stationId: "pacioos-roms-maliko",
+      stationId,
       stationName,
       speedKt: Math.round(speedKt * 100) / 100,
       directionDeg: Math.round(normalizedDirection),
@@ -39,7 +40,7 @@ export async function getPacioosSurfaceCurrent(
       source: {
         source: "PacIOOS ROMS surface current forecast",
         status: "stale",
-        stationId: "pacioos-roms-maliko",
+        stationId,
         sourceUrl,
         fetchedAt: new Date().toISOString(),
         observedAt: row.time,
@@ -47,7 +48,7 @@ export async function getPacioosSurfaceCurrent(
     };
   } catch (error) {
     return {
-      stationId: "pacioos-roms-maliko",
+      stationId,
       stationName,
       speedKt: null,
       directionDeg: null,
@@ -56,7 +57,7 @@ export async function getPacioosSurfaceCurrent(
       source: {
         source: "PacIOOS ROMS surface current forecast",
         status: "missing",
-        stationId: "pacioos-roms-maliko",
+        stationId,
         sourceUrl,
         fetchedAt: new Date().toISOString(),
         error: error instanceof Error ? error.message : "Unknown PacIOOS ROMS error",
@@ -80,4 +81,3 @@ function degreesToCardinal(degrees: number) {
   const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
   return directions[Math.round(degrees / 45) % 8];
 }
-

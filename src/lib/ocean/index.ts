@@ -8,7 +8,7 @@ import { getNdbcObservations } from "./ndbc";
 import { getNwsAlerts, getNwsForecastWindows } from "./nws";
 import { getPacioosSurfaceCurrent } from "./pacioos";
 import { scoreRoute } from "./scoring";
-import type { MauiShoreId, OceanConditionSnapshot, OceanIntelligenceResult, OffshoreBuoyId, OffshoreBuoyObservation, RouteConfig, ShoreOceanObservations } from "./types";
+import type { ForecastRegionId, MauiShoreId, OceanConditionSnapshot, OceanIntelligenceResult, OffshoreBuoyId, OffshoreBuoyObservation, RouteConfig, ShoreOceanObservations } from "./types";
 
 export type {
   ForecastWindow,
@@ -19,6 +19,7 @@ export type {
   RouteScore,
   HarborWindObservation,
   CoastalWindObservation,
+  ForecastRegionId,
   MauiShoreId,
   OffshoreBuoyId,
   OffshoreBuoyObservation,
@@ -43,6 +44,11 @@ export { getPacioosSurfaceCurrent } from "./pacioos";
 export { scoreRoute } from "./scoring";
 
 const SNAPSHOT_CACHE_TTL_MS = 5 * 60 * 1000;
+const CHANNEL_CURRENT_POINTS = {
+  pailolo: { point: { latitude: 21.17, longitude: -156.76 }, label: "Pailolo Channel" },
+  kaiwi: { point: { latitude: 21.28, longitude: -157.22 }, label: "Kaiwi Channel" },
+  alenuihaha: { point: { latitude: 20.28, longitude: -155.92 }, label: "Alenuihaha Channel" },
+} as const;
 let snapshotCache:
   | {
       routeId: string;
@@ -88,7 +94,7 @@ export async function getOceanConditionSnapshot(route: RouteConfig = malikoNorth
 
 async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanConditionSnapshot> {
   try {
-    const [buoy, southBuoy, openOceanNwBuoy, northernHawaiiBuoy, southwestHawaiiBuoy, southeastHawaiiBuoy, ddFadForecastWind, tide, southTide, westTide, current, northSurfaceCurrent, southCurrent, westCurrent, coastalWinds, harborWinds, forecastWindows, southForecastWindows, westForecastWindows, marineForecastDays, channelForecasts, alerts] = await Promise.all([
+    const [buoy, southBuoy, openOceanNwBuoy, northernHawaiiBuoy, southwestHawaiiBuoy, southeastHawaiiBuoy, ddFadForecastWind, tide, southTide, westTide, current, northSurfaceCurrent, southCurrent, westCurrent, pailoloCurrent, kaiwiCurrent, alenuihahaCurrent, coastalWinds, harborWinds, forecastWindows, southForecastWindows, eastForecastWindows, westForecastWindows, marineForecastDays, channelForecasts, alerts] = await Promise.all([
       getNdbcObservations(route.stations.primaryBuoyId),
       getNdbcObservations("51213"),
       getNdbcObservations("51001"),
@@ -103,10 +109,14 @@ async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanCond
       getPacioosSurfaceCurrent({ latitude: 21.035, longitude: -156.255 }, "Maliko / North Shore"),
       getCoopsCurrentPredictionObservation("HAI1121_28", "Alalakeiki Channel"),
       getCoopsCurrentPredictionObservation("HAI1119_29", "Auau Channel"),
+      getPacioosSurfaceCurrent(CHANNEL_CURRENT_POINTS.pailolo.point, CHANNEL_CURRENT_POINTS.pailolo.label, "pacioos-roms-pailolo"),
+      getPacioosSurfaceCurrent(CHANNEL_CURRENT_POINTS.kaiwi.point, CHANNEL_CURRENT_POINTS.kaiwi.label, "pacioos-roms-kaiwi"),
+      getPacioosSurfaceCurrent(CHANNEL_CURRENT_POINTS.alenuihaha.point, CHANNEL_CURRENT_POINTS.alenuihaha.label, "pacioos-roms-alenuihaha"),
       getMauiCoastalWinds(),
       getMauiHarborWinds(),
       getNwsForecastWindows(route.stations.nwsPoint),
       getNwsForecastWindows({ latitude: 20.756, longitude: -156.457 }),
+      getNwsForecastWindows({ latitude: 20.759, longitude: -155.988 }),
       getNwsForecastWindows({ latitude: 20.872, longitude: -156.678 }),
       getMauiMarineForecastDays(),
       getChannelForecastObservations(),
@@ -185,10 +195,16 @@ async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanCond
       shoreForecastWindows: {
         north: forecastWindows,
         south: southForecastWindows,
+        east: eastForecastWindows,
         west: westForecastWindows,
-      },
+      } satisfies Record<ForecastRegionId, typeof forecastWindows>,
       marineForecastDays,
       channelForecasts,
+      channelCurrents: {
+        pailolo: pailoloCurrent,
+        kaiwi: kaiwiCurrent,
+        alenuihaha: alenuihahaCurrent,
+      },
       alerts,
       sources: [
         buoy.wind.source,
@@ -217,10 +233,14 @@ async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanCond
         northSurfaceCurrent.source,
         southCurrent.source,
         westCurrent.source,
+        pailoloCurrent.source,
+        kaiwiCurrent.source,
+        alenuihahaCurrent.source,
         ...coastalWinds.map((coastal) => coastal.observation.source),
         ...harborWinds.map((harbor) => harbor.observation.source),
         ...forecastWindows.map((window) => window.source),
         ...southForecastWindows.map((window) => window.source),
+        ...eastForecastWindows.map((window) => window.source),
         ...westForecastWindows.map((window) => window.source),
         ...Object.values(channelForecasts).map((channel) => channel.wind.source),
         ...alerts.map((alert) => alert.source),

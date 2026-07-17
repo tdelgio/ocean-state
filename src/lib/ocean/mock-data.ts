@@ -277,8 +277,21 @@ function createMockChannelForecast(channelId: ChannelForecastObservation["channe
     wind: { ...mockWindObservation, speedKt: null, gustKt: null, directionDeg: null, directionCardinal: null },
     bumpEnergy: { heightFt: null, periodSec: null, directionCardinal: null },
     rainSummary: null,
+    forecastDays: [],
   };
 }
+
+const mockMarineForecastDays = [
+  {
+    dayLabel: "TODAY",
+    seas: null,
+    wind: mockWindObservation,
+    bumpEnergy: { heightFt: null, periodSec: null, directionCardinal: null },
+    groundswell: { heightFt: null, periodSec: null, directionCardinal: null },
+    rainSummary: null,
+    source: mockWindObservation.source,
+  },
+];
 
 export const mockTideObservation: TideObservation = {
   stationId: "1615680",
@@ -481,16 +494,22 @@ export function createMockOceanSnapshot(route: RouteConfig = malikoNorthShoreRou
     shoreForecastWindows: {
       north: mockForecastWindows,
       south: mockForecastWindows,
+      east: mockForecastWindows,
       west: mockForecastWindows,
     },
     marineForecastDays: {
-      windward: [],
-      leeward: [],
+      windward: mockMarineForecastDays,
+      leeward: mockMarineForecastDays,
     },
     channelForecasts: {
       pailolo: createMockChannelForecast("pailolo", "Pailolo"),
       kaiwi: createMockChannelForecast("kaiwi", "Kaiwi"),
       alenuihaha: createMockChannelForecast("alenuihaha", "Alenuihaha"),
+    },
+    channelCurrents: {
+      pailolo: mockCurrentObservation,
+      kaiwi: mockCurrentObservation,
+      alenuihaha: mockCurrentObservation,
     },
     alerts: [],
     sources: [
