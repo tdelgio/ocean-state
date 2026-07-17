@@ -397,6 +397,9 @@ function ModelTimeline({
         {days.map((day, index) => {
           const wind = parseWind(day.wind);
           const tone = getWindToneFromText(wind.speed, wind.gust);
+          const observedGroundswell = index === 0
+            ? getObservedGroundswellForForecast(snapshot, region)
+            : null;
           return (
             <article
               key={day.day}
@@ -409,7 +412,11 @@ function ModelTimeline({
               </div>
               <div className="mt-3 space-y-2">
                 <ForecastWindCard wind={wind} tone={tone} />
-                <ForecastEnergyCard groundswell={day.groundswell} windSwell={day.bumpEnergy} />
+                <ForecastEnergyCard
+                  groundswell={day.groundswell}
+                  observedGroundswell={observedGroundswell}
+                  windSwell={day.bumpEnergy}
+                />
                 <ForecastRainCard rain={day.rain} detail={day.read} />
               </div>
             </article>
@@ -444,14 +451,20 @@ function ForecastWindCard({ wind, tone, hero = false }: { wind: ReturnType<typeo
 
 function ForecastEnergyCard({
   groundswell,
+  observedGroundswell,
   windSwell,
 }: {
   groundswell: ReturnType<typeof formatMarineForecastEnergy>;
+  observedGroundswell?: ReturnType<typeof formatSeaEnergy> | null;
   windSwell: ReturnType<typeof formatMarineForecastEnergy>;
 }) {
-  const energy = groundswell.height !== "No data" ? groundswell : windSwell;
+  const energy = observedGroundswell ?? (groundswell.height !== "No data" ? groundswell : windSwell);
   if (energy.height === "No data") return null;
-  const label = groundswell.height !== "No data" ? "Ground Swell" : "Wind Swell";
+  const label = observedGroundswell
+    ? "Observed Ground Swell"
+    : groundswell.height !== "No data"
+      ? "Ground Swell"
+      : "Forecast Wind Sea";
   return (
     <div className="rounded-xl border border-blue-900/12 bg-[#f4f8f9] p-3 dark:border-white/12 dark:bg-[#071d2a]">
       <div>
@@ -1965,6 +1978,17 @@ function getMarineForecastEnergy(day: string, marineForecastDays: MarineForecast
     bumpEnergy: formatMarineForecastEnergy(marineDay?.bumpEnergy),
     groundswell: formatMarineForecastEnergy(marineDay?.groundswell),
   };
+}
+
+function getObservedGroundswellForForecast(
+  snapshot: OceanConditionSnapshot,
+  region: ForecastRegion,
+) {
+  if (region === "east") return null;
+  const observed = snapshot.shoreObservations[region]?.groundswell;
+  return observed?.heightFt !== null && observed?.heightFt !== undefined
+    ? formatSeaEnergy(observed)
+    : null;
 }
 
 function formatMarineForecastEnergy(energy?: MarineForecastDay["bumpEnergy"]) {
