@@ -3,12 +3,19 @@ import type { CurrentObservation, SourceMeta, TideEvent, TideObservation, TideTr
 
 const COOPS_API_URL = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter";
 const COOPS_METADATA_URL = "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations";
+const COOPS_HIGH_LOW_PLAIN_URL = "https://opendap.co-ops.nos.noaa.gov/axis/webservices/highlowtidepred/plain/response.jsp";
+const COOPS_ERDDAP_TIDE_PREDICTIONS_URL = "https://coastwatch.pfeg.noaa.gov/erddap/tabledap/nosCoopsWLTP60.json";
 const COOPS_FETCH_TIMEOUT_MS = 4500;
+const COOPS_PREDICTION_TIMEOUT_MS = 9000;
+const COOPS_REQUEST_HEADERS = {
+  Accept: "application/json,text/plain,*/*",
+  "User-Agent": "OceanState/0.1 (feedback@oceanstate.live)",
+};
 
 interface CoopsPrediction {
   t: string;
   v: string;
-  type?: "H" | "L";
+  type?: string;
 }
 
 interface CoopsWaterLevel {
@@ -23,31 +30,44 @@ interface CoopsCurrent {
   bin?: string;
 }
 
+interface ErddapTableResponse {
+  table?: {
+    columnNames?: string[];
+    rows?: unknown[][];
+  };
+}
+
 export async function getCoopsTideObservation(stationId: string): Promise<TideObservation> {
   try {
-    const [metadata, predictions, waterLevels] = await Promise.all([
+    const [metadataResult, predictionsResult, waterLevelsResult] = await Promise.allSettled([
       fetchStationMetadata(stationId),
       fetchTidePredictions(stationId),
       fetchCurrentWaterLevels(stationId),
     ]);
+    const metadata = metadataResult.status === "fulfilled" ? metadataResult.value : null;
+    const predictions = predictionsResult.status === "fulfilled" ? predictionsResult.value : [];
+    const waterLevels = waterLevelsResult.status === "fulfilled" ? waterLevelsResult.value : [];
+    if (!predictions.length && !waterLevels.length) {
+      throw new Error("CO-OPS tide observation returned no usable tide or water-level data");
+    }
     const fetchedAt = new Date().toISOString();
     const source: SourceMeta = {
       source: "NOAA CO-OPS",
-      status: "live",
+      status: waterLevels.length ? "live" : "stale",
       stationId,
       fetchedAt,
       sourceUrl: getCoopsStationUrl(stationId),
       observedAt: waterLevels.at(-1)?.t ? normalizeHawaiiTimestamp(waterLevels.at(-1)!.t) : undefined,
       freshnessMinutes: waterLevels.at(-1)?.t ? minutesBetween(normalizeHawaiiTimestamp(waterLevels.at(-1)!.t), fetchedAt) : undefined,
     };
-    const events = predictions.map(parsePrediction).filter((event): event is TideEvent => Boolean(event));
+    const events = parsePredictions(predictions);
     const currentWaterLevelFt = waterLevels.at(-1)?.v ? Number(waterLevels.at(-1)!.v) : null;
     const observedTrend = inferTideTrend(waterLevels);
 
     return {
       stationId,
       stationName: metadata?.name ?? stationId,
-      currentWaterLevelFt: Number.isFinite(currentWaterLevelFt) ? currentWaterLevelFt : null,
+      currentWaterLevelFt: Number.isFinite(currentWaterLevelFt) ? currentWaterLevelFt : estimateCurrentTideHeight(events),
       trend: observedTrend === "unknown" ? inferPredictionTrend(events) : observedTrend,
       nextHigh: findNextEvent(events, "high"),
       nextLow: findNextEvent(events, "low"),
@@ -70,9 +90,9 @@ export async function getCoopsTideObservation(stationId: string): Promise<TideOb
 
 export async function getCoopsTidePredictionObservation(stationId: string, stationName: string): Promise<TideObservation> {
   try {
-    const predictions = await fetchTidePredictions(stationId);
+    const predictions = await fetchTidePredictionsWithSubordinateFallback(stationId);
     const fetchedAt = new Date().toISOString();
-    const events = predictions.map(parsePrediction).filter((event): event is TideEvent => Boolean(event));
+    const events = parsePredictions(predictions);
     return {
       stationId,
       stationName,
@@ -107,6 +127,20 @@ export async function getCoopsTidePredictionObservation(stationId: string, stati
         error: error instanceof Error ? error.message : "Unknown CO-OPS prediction error",
       },
     };
+  }
+}
+
+async function fetchTidePredictionsWithSubordinateFallback(stationId: string): Promise<CoopsPrediction[]> {
+  const offset = getKnownSubordinateTideOffset(stationId);
+
+  try {
+    return await fetchTidePredictions(stationId);
+  } catch (error) {
+    if (offset) {
+      const referencePredictions = await fetchTidePredictions(offset.referenceStationId);
+      return withInferredPredictionTypes(referencePredictions).map((prediction) => applySubordinateTideOffset(prediction, offset));
+    }
+    throw error;
   }
 }
 
@@ -164,6 +198,7 @@ export async function getCoopsCurrentPredictionObservation(
       format: "json",
     })}`, {
       next: { revalidate: 900 },
+      headers: COOPS_REQUEST_HEADERS,
       signal: AbortSignal.timeout(COOPS_FETCH_TIMEOUT_MS),
     });
     if (!response.ok) throw new Error(`CO-OPS current prediction failed with ${response.status}`);
@@ -222,6 +257,7 @@ async function fetchCurrentVelocity(stationId: string): Promise<CoopsCurrent[]> 
   });
   const response = await fetch(`${COOPS_API_URL}?${params}`, {
     next: { revalidate: 600 },
+    headers: COOPS_REQUEST_HEADERS,
     signal: AbortSignal.timeout(COOPS_FETCH_TIMEOUT_MS),
   });
   if (!response.ok) throw new Error(`CO-OPS currents failed with ${response.status}`);
@@ -230,35 +266,209 @@ async function fetchCurrentVelocity(stationId: string): Promise<CoopsCurrent[]> 
 }
 
 async function fetchTidePredictions(stationId: string): Promise<CoopsPrediction[]> {
-  const beginDate = formatHawaiiDate(new Date());
+  const beginDate = formatHawaiiDate(new Date(Date.now() - 24 * 60 * 60 * 1000));
+  const endDate = formatHawaiiDate(new Date(Date.now() + 72 * 60 * 60 * 1000));
+  const today = formatHawaiiDate(new Date());
+  const primaryDatum = stationId.startsWith("TPT") ? "STND" : "MLLW";
+  const secondaryDatum = primaryDatum === "STND" ? "MLLW" : "STND";
+  const predictionQueries: Array<() => Promise<CoopsPrediction[]>> = [
+    () => fetchTidePredictionsForQuery(stationId, { begin_date: beginDate, end_date: endDate, time_zone: "lst", datum: primaryDatum }),
+    () => fetchTidePredictionsForQuery(stationId, { begin_date: today, range: "96", time_zone: "lst", datum: primaryDatum }),
+    () => fetchTidePredictionsForQuery(stationId, { begin_date: beginDate, end_date: endDate, time_zone: "lst", datum: secondaryDatum }),
+    () => fetchTidePredictionsForQuery(stationId, { begin_date: today, range: "96", time_zone: "lst", datum: secondaryDatum }),
+    () => fetchErddapTidePredictions(stationId),
+    () => fetchPlainHighLowTidePredictions(stationId),
+  ];
+  let firstError: unknown = null;
+  for (const query of predictionQueries) {
+    try {
+      const predictions = await query();
+      if (predictions.length && parsePredictions(predictions).length) return predictions;
+    } catch (error) {
+      firstError ??= error;
+    }
+  }
+
+  throw new Error(
+    firstError instanceof Error
+      ? firstError.message
+      : `CO-OPS tide predictions returned no data for ${stationId}`,
+  );
+}
+
+async function fetchTidePredictionsForQuery(
+  stationId: string,
+  query: Record<string, string>,
+): Promise<CoopsPrediction[]> {
   const params = new URLSearchParams({
     product: "predictions",
     application: "downwind_ai",
-    begin_date: beginDate,
-    range: "72",
     datum: "MLLW",
     station: stationId,
     time_zone: "lst_ldt",
     units: "english",
-    interval: "hilo",
     format: "json",
+    ...query,
   });
+  if (query.datum === "") params.delete("datum");
+  if (!params.has("interval")) params.set("interval", "hilo");
   const response = await fetch(`${COOPS_API_URL}?${params}`, {
-    next: { revalidate: 1800 },
-    signal: AbortSignal.timeout(COOPS_FETCH_TIMEOUT_MS),
+    cache: "no-store",
+    headers: COOPS_REQUEST_HEADERS,
+    signal: AbortSignal.timeout(COOPS_PREDICTION_TIMEOUT_MS),
   });
   if (!response.ok) throw new Error(`CO-OPS tide predictions failed with ${response.status}`);
-  const json = (await response.json()) as { predictions?: CoopsPrediction[] };
+  const json = (await response.json()) as { error?: { message?: string }; predictions?: CoopsPrediction[] };
+  if (json.error?.message) throw new Error(json.error.message);
   const predictions = json.predictions ?? [];
   if (!predictions.length) throw new Error(`CO-OPS tide predictions returned no data for ${stationId}`);
   return predictions;
+}
+
+async function fetchPlainHighLowTidePredictions(stationId: string): Promise<CoopsPrediction[]> {
+  const params = new URLSearchParams({
+    stationId,
+    beginDate: `${formatHawaiiDate(new Date(Date.now() - 24 * 60 * 60 * 1000))} 00:00`,
+    endDate: `${formatHawaiiDate(new Date(Date.now() + 72 * 60 * 60 * 1000))} 23:59`,
+    datum: "0",
+    unit: "0",
+    timeZone: "0",
+    metadata: "yes",
+  });
+  const response = await fetch(`${COOPS_HIGH_LOW_PLAIN_URL}?${params}`, {
+    cache: "no-store",
+    headers: COOPS_REQUEST_HEADERS,
+    signal: AbortSignal.timeout(COOPS_PREDICTION_TIMEOUT_MS),
+  });
+  if (!response.ok) throw new Error(`CO-OPS high/low tide service failed with ${response.status}`);
+  const text = await response.text();
+  const predictions = parsePlainHighLowPredictions(text);
+  if (!predictions.length) throw new Error(`CO-OPS high/low tide service returned no data for ${stationId}`);
+  return predictions;
+}
+
+function parsePlainHighLowPredictions(text: string): CoopsPrediction[] {
+  const predictions: CoopsPrediction[] = [];
+  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  let currentDate: string | null = null;
+  let pendingTime: string | null = null;
+  let pendingValue: string | null = null;
+
+  for (const line of lines) {
+    const dateMatch = line.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (dateMatch) {
+      currentDate = `${dateMatch[3]}-${dateMatch[1]}-${dateMatch[2]}`;
+      continue;
+    }
+    const timeMatch = line.match(/Time\s*:\s*((?:\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4})\s+)?(\d{1,2}:\d{2})(?:\s*([AP]M))?/i);
+    if (timeMatch) {
+      const inlineDate = timeMatch[1]?.trim();
+      if (inlineDate) currentDate = normalizePlainPredictionDate(inlineDate);
+      pendingTime = normalizePlainPredictionTime(timeMatch[2], timeMatch[3]);
+      continue;
+    }
+    const valueMatch = line.match(/Pred\s*:\s*(-?\d+(?:\.\d+)?)/i);
+    if (valueMatch) {
+      pendingValue = valueMatch[1];
+      continue;
+    }
+    const typeMatch = line.match(/Type\s*:\s*([HL])/i);
+    if (typeMatch && currentDate && pendingTime && pendingValue) {
+      predictions.push({
+        t: `${currentDate} ${pendingTime}`,
+        v: pendingValue,
+        type: typeMatch[1].toUpperCase(),
+      });
+      pendingTime = null;
+      pendingValue = null;
+    }
+  }
+
+  return predictions;
+}
+
+function normalizePlainPredictionDate(date: string) {
+  const isoMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) return date;
+  const usMatch = date.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (usMatch) return `${usMatch[3]}-${usMatch[1]}-${usMatch[2]}`;
+  return date;
+}
+
+function normalizePlainPredictionTime(time: string, meridiem?: string) {
+  const [hourValue, minute = "00"] = time.split(":");
+  let hour = Number(hourValue);
+  const normalizedMeridiem = meridiem?.toUpperCase();
+  if (normalizedMeridiem === "PM" && hour < 12) hour += 12;
+  if (normalizedMeridiem === "AM" && hour === 12) hour = 0;
+  return `${String(hour).padStart(2, "0")}:${minute.padStart(2, "0")}`;
+}
+
+async function fetchErddapTidePredictions(stationId: string): Promise<CoopsPrediction[]> {
+  const start = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const end = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
+  const query = [
+    "stationID,time,predictedWL",
+    `stationID=${encodeURIComponent(`"${stationId}"`)}`,
+    `time%3E=${encodeURIComponent(start)}`,
+    `time%3C=${encodeURIComponent(end)}`,
+    `datum=${encodeURIComponent('"MLLW"')}`,
+  ].join("&");
+  const response = await fetch(`${COOPS_ERDDAP_TIDE_PREDICTIONS_URL}?${query}`, {
+    cache: "no-store",
+    headers: COOPS_REQUEST_HEADERS,
+    signal: AbortSignal.timeout(COOPS_PREDICTION_TIMEOUT_MS),
+  });
+  if (!response.ok) throw new Error(`NOAA ERDDAP tide predictions failed with ${response.status}`);
+  const json = (await response.json()) as ErddapTableResponse;
+  const columns = json.table?.columnNames ?? [];
+  const rows = json.table?.rows ?? [];
+  const stationIndex = columns.indexOf("stationID");
+  const timeIndex = columns.indexOf("time");
+  const waterLevelIndex = columns.indexOf("predictedWL");
+  if (stationIndex < 0 || timeIndex < 0 || waterLevelIndex < 0 || !rows.length) {
+    throw new Error(`NOAA ERDDAP tide predictions returned no usable rows for ${stationId}`);
+  }
+
+  const points = rows
+    .map((row) => ({
+      stationId: String(row[stationIndex] ?? ""),
+      time: String(row[timeIndex] ?? ""),
+      heightMeters: Number(row[waterLevelIndex]),
+    }))
+    .filter((point) => point.stationId === stationId && point.time && Number.isFinite(point.heightMeters))
+    .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+
+  return extractTideExtrema(points);
+}
+
+function extractTideExtrema(points: Array<{ time: string; heightMeters: number }>): CoopsPrediction[] {
+  const extrema: CoopsPrediction[] = [];
+  for (let index = 1; index < points.length - 1; index += 1) {
+    const previous = points[index - 1];
+    const current = points[index];
+    const next = points[index + 1];
+    const type = current.heightMeters >= previous.heightMeters && current.heightMeters >= next.heightMeters
+      ? "H"
+      : current.heightMeters <= previous.heightMeters && current.heightMeters <= next.heightMeters
+        ? "L"
+        : null;
+    if (!type) continue;
+    extrema.push({
+      t: formatNoaaLocalTimestamp(new Date(current.time)),
+      v: (current.heightMeters * 3.28084).toFixed(3),
+      type,
+    });
+  }
+  if (!extrema.length) throw new Error("NOAA ERDDAP tide predictions did not contain high/low extrema");
+  return extrema;
 }
 
 async function fetchCurrentWaterLevels(stationId: string): Promise<CoopsWaterLevel[]> {
   const params = new URLSearchParams({
     product: "water_level",
     application: "downwind_ai",
-    date: "latest",
+    date: "recent",
     datum: "MLLW",
     station: stationId,
     time_zone: "lst_ldt",
@@ -266,7 +476,8 @@ async function fetchCurrentWaterLevels(stationId: string): Promise<CoopsWaterLev
     format: "json",
   });
   const response = await fetch(`${COOPS_API_URL}?${params}`, {
-    next: { revalidate: 600 },
+    cache: "no-store",
+    headers: COOPS_REQUEST_HEADERS,
     signal: AbortSignal.timeout(COOPS_FETCH_TIMEOUT_MS),
   });
   if (!response.ok) throw new Error(`CO-OPS water level failed with ${response.status}`);
@@ -277,6 +488,7 @@ async function fetchCurrentWaterLevels(stationId: string): Promise<CoopsWaterLev
 async function fetchStationMetadata(stationId: string): Promise<{ name?: string } | null> {
   const response = await fetch(`${COOPS_METADATA_URL}/${stationId}.json`, {
     next: { revalidate: 86400 },
+    headers: COOPS_REQUEST_HEADERS,
     signal: AbortSignal.timeout(COOPS_FETCH_TIMEOUT_MS),
   });
   if (!response.ok) return null;
@@ -284,19 +496,136 @@ async function fetchStationMetadata(stationId: string): Promise<{ name?: string 
   return json.stations?.[0] ?? null;
 }
 
-function parsePrediction(prediction: CoopsPrediction): TideEvent | null {
+function parsePredictions(predictions: CoopsPrediction[]): TideEvent[] {
+  return withInferredPredictionTypes(predictions)
+    .map((prediction) => {
+      const heightFt = Number(prediction.v);
+      const type = String(prediction.type ?? "").trim().toUpperCase();
+      if (!Number.isFinite(heightFt) || (type !== "H" && type !== "L")) return null;
+      return {
+        time: normalizeHawaiiTimestamp(prediction.t),
+        heightFt,
+        type: type === "H" ? "high" : "low",
+      } satisfies TideEvent;
+    })
+    .filter((event): event is TideEvent => Boolean(event));
+}
+
+function withInferredPredictionTypes(predictions: CoopsPrediction[]): CoopsPrediction[] {
+  const parsed = predictions
+    .map((prediction, index) => ({
+      index,
+      prediction,
+      heightFt: Number(prediction.v),
+      timeMs: new Date(normalizeHawaiiTimestamp(prediction.t)).getTime(),
+      type: normalizePredictionType(prediction.type),
+    }))
+    .filter((item) => Number.isFinite(item.heightFt) && Number.isFinite(item.timeMs))
+    .sort((a, b) => a.timeMs - b.timeMs);
+
+  return parsed.map((item, index) => {
+    if (item.type) return { ...item.prediction, type: item.type };
+    const previous = parsed[index - 1];
+    const next = parsed[index + 1];
+    const inferredType = inferPredictionTypeFromNeighbors(item.heightFt, previous?.heightFt, next?.heightFt);
+    return { ...item.prediction, type: inferredType ?? undefined };
+  });
+}
+
+function normalizePredictionType(type?: string): "H" | "L" | null {
+  const normalized = String(type ?? "").trim().toUpperCase();
+  if (normalized === "H" || normalized === "HIGH") return "H";
+  if (normalized === "L" || normalized === "LOW") return "L";
+  return null;
+}
+
+function inferPredictionTypeFromNeighbors(heightFt: number, previousHeightFt?: number, nextHeightFt?: number): "H" | "L" | null {
+  if (previousHeightFt !== undefined && nextHeightFt !== undefined) {
+    if (heightFt >= previousHeightFt && heightFt >= nextHeightFt) return "H";
+    if (heightFt <= previousHeightFt && heightFt <= nextHeightFt) return "L";
+  }
+  if (nextHeightFt !== undefined) return heightFt > nextHeightFt ? "H" : "L";
+  if (previousHeightFt !== undefined) return heightFt > previousHeightFt ? "H" : "L";
+  return null;
+}
+
+type SubordinateTideOffset = {
+  referenceStationId: string;
+  highTimeOffsetMinutes: number;
+  lowTimeOffsetMinutes: number;
+  highHeightMultiplier: number;
+  lowHeightMultiplier: number;
+};
+
+function getKnownSubordinateTideOffset(stationId: string): SubordinateTideOffset | null {
+  const offsets: Record<string, SubordinateTideOffset> = {
+    TPT2797: {
+      referenceStationId: "1615680",
+      highTimeOffsetMinutes: 112,
+      lowTimeOffsetMinutes: 79,
+      highHeightMultiplier: 0.94,
+      lowHeightMultiplier: 0.54,
+    },
+    TPT2799: {
+      referenceStationId: "1615680",
+      highTimeOffsetMinutes: 78,
+      lowTimeOffsetMinutes: 61,
+      highHeightMultiplier: 0.89,
+      lowHeightMultiplier: 0.81,
+    },
+  };
+  return offsets[stationId] ?? null;
+}
+
+function applySubordinateTideOffset(prediction: CoopsPrediction, offset: SubordinateTideOffset): CoopsPrediction {
+  if (!prediction.type) return prediction;
   const heightFt = Number(prediction.v);
-  if (!Number.isFinite(heightFt) || !prediction.type) return null;
+  const timeOffsetMinutes = prediction.type === "H" ? offset.highTimeOffsetMinutes : offset.lowTimeOffsetMinutes;
+  const heightMultiplier = prediction.type === "H" ? offset.highHeightMultiplier : offset.lowHeightMultiplier;
+  const adjustedTime = new Date(normalizeHawaiiTimestamp(prediction.t));
+  adjustedTime.setMinutes(adjustedTime.getMinutes() + timeOffsetMinutes);
+
   return {
-    time: normalizeHawaiiTimestamp(prediction.t),
-    heightFt,
-    type: prediction.type === "H" ? "high" : "low",
+    ...prediction,
+    t: formatNoaaLocalTimestamp(adjustedTime),
+    v: Number.isFinite(heightFt) ? (heightFt * heightMultiplier).toFixed(3) : prediction.v,
   };
 }
 
 function normalizeHawaiiTimestamp(timestamp: string) {
   if (/[zZ]|[+-]\d{2}:\d{2}$/.test(timestamp)) return timestamp;
+  const twelveHourMatch = timestamp
+    .trim()
+    .match(/^(\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4})\s+(\d{1,2}:\d{2})(?::\d{2})?\s*([AP]M)$/i);
+  if (twelveHourMatch) {
+    const date = normalizePlainPredictionDate(twelveHourMatch[1]);
+    const time = normalizePlainPredictionTime(twelveHourMatch[2], twelveHourMatch[3]);
+    return `${date}T${time}:00-10:00`;
+  }
+  const twentyFourHourMatch = timestamp
+    .trim()
+    .match(/^(\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4})\s+(\d{1,2}:\d{2})(?::\d{2})?$/);
+  if (twentyFourHourMatch) {
+    const date = normalizePlainPredictionDate(twentyFourHourMatch[1]);
+    const [hour, minute] = twentyFourHourMatch[2].split(":");
+    return `${date}T${hour.padStart(2, "0")}:${minute}:00-10:00`;
+  }
   return `${timestamp.replace(" ", "T")}-10:00`;
+}
+
+function formatNoaaLocalTimestamp(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Pacific/Honolulu",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day} ${values.hour}:${values.minute}`;
 }
 
 function formatHawaiiDate(date: Date) {
