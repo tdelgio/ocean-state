@@ -942,21 +942,25 @@ function ChannelExtendedForecast({ days }: { days: MarineForecastDay[] }) {
                   </div>
                 </div>
               </div>
-              <div>
+              <div className="flex h-full flex-col">
                 <div className="bg-[#eaf4fb] px-3 py-3 dark:bg-[#102f46]">
                   <ChannelForecastBumpMetric value={bump.height} detail={bump.meta} />
-                  {groundswell.height !== "No data" ? (
-                    <div className="mt-2 rounded-xl bg-white/55 px-2.5 py-2 dark:bg-white/8">
-                      <p className="text-[0.58rem] font-semibold uppercase tracking-[0.1em] text-[#536b73] dark:text-[#b7cbd3]">
-                        Ground swell
-                      </p>
+                  <div className="mt-2 rounded-xl bg-white/55 px-2.5 py-2 dark:bg-white/8">
+                    <p className="text-[0.58rem] font-semibold uppercase tracking-[0.1em] text-[#536b73] dark:text-[#b7cbd3]">
+                      Ground swell
+                    </p>
+                    {groundswell.height !== "No data" ? (
                       <p className="weather-data mt-1 text-sm leading-none text-[#102b3a] dark:text-[#e9f8fb]">
                         {groundswell.height} · {groundswell.meta}
                       </p>
-                    </div>
-                  ) : null}
+                    ) : (
+                      <p className="mt-1 text-xs font-semibold leading-4 text-[#536b73] dark:text-[#b7cbd3]">
+                        No ground swell
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <p className="flex items-start gap-1.5 bg-[#eff9f6] px-3 py-2.5 text-xs font-semibold leading-4 text-[#536b73] dark:bg-[#0e2f33] dark:text-[#b7cbd3]">
+                <p className="flex min-h-[4.25rem] flex-1 items-start gap-1.5 bg-[#eff9f6] px-3 py-2.5 text-xs font-semibold leading-4 text-[#536b73] dark:bg-[#0e2f33] dark:text-[#b7cbd3]">
                   <CloudRain className="mt-0.5 size-3.5 shrink-0 text-teal-700 dark:text-teal-200" />
                   <span className="line-clamp-2">{day.rainSummary ?? "No rain detail"}</span>
                 </p>
