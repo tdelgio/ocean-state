@@ -927,6 +927,7 @@ function ChannelExtendedForecast({ days }: { days: MarineForecastDay[] }) {
           const bump = formatMarineForecastEnergy(day.bumpEnergy);
           const groundswell = formatMarineForecastEnergy(day.groundswell);
           const wind = windObservationToDisplay(day.wind);
+          const rain = formatChannelRainSummary(day.rainSummary);
           const tone = getWindToneClasses(getWindToneFromText(wind.speed, wind.gust));
           return (
             <div key={day.dayLabel} className="w-[12rem] shrink-0 snap-start overflow-hidden rounded-2xl border border-[#094c60]/10 bg-white shadow-[0_8px_20px_rgba(7,35,45,0.04)] dark:border-white/10 dark:bg-[#091d2b]">
@@ -962,7 +963,16 @@ function ChannelExtendedForecast({ days }: { days: MarineForecastDay[] }) {
                 </div>
                 <p className="flex min-h-[4.25rem] flex-1 items-start gap-1.5 bg-[#eff9f6] px-3 py-2.5 text-xs font-semibold leading-4 text-[#536b73] dark:bg-[#0e2f33] dark:text-[#b7cbd3]">
                   <CloudRain className="mt-0.5 size-3.5 shrink-0 text-teal-700 dark:text-teal-200" />
-                  <span className="line-clamp-2">{day.rainSummary ?? "No rain detail"}</span>
+                  <span className="min-w-0 leading-tight">
+                    <strong className="block text-xs font-semibold leading-4 text-[#536b73] dark:text-[#b7cbd3]">
+                      {rain.primary}
+                    </strong>
+                    {rain.secondary ? (
+                      <span className="block text-xs font-medium leading-4 text-[#7a8990] dark:text-[#a9bdc5]">
+                        {rain.secondary}
+                      </span>
+                    ) : null}
+                  </span>
                 </p>
               </div>
             </div>
@@ -971,6 +981,22 @@ function ChannelExtendedForecast({ days }: { days: MarineForecastDay[] }) {
       </div>
     </div>
   );
+}
+
+function formatChannelRainSummary(summary: string | null) {
+  const fallback = "No rain detail";
+  const text = (summary ?? fallback).trim();
+  const split = text.match(/^(.*?\bshowers?)\s+(.*)$/i);
+  if (split?.[1] && split[2]) {
+    return {
+      primary: split[1],
+      secondary: split[2],
+    };
+  }
+  return {
+    primary: text,
+    secondary: "",
+  };
 }
 
 function ConditionMetric({
