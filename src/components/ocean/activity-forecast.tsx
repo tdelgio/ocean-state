@@ -213,13 +213,13 @@ export function ExtendedForecastOverview({
 }) {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-5">
-      <section className="rounded-[1.25rem] bg-white/62 p-3 shadow-[0_14px_36px_rgba(7,35,45,0.045)] dark:bg-[#0b2230]/72 sm:p-5">
-        <div className="flex items-center justify-between gap-3 border-b border-[#d8dedf] pb-3 dark:border-white/12">
-          <h1 className="flex items-center gap-2 text-2xl font-semibold uppercase tracking-[0.02em] text-[#102b3a] dark:text-[#f4fbff] sm:text-3xl">
-            <Waves className="size-6 text-[#0d9684] sm:size-7" />
+      <section className="rounded-[1.35rem] bg-white/66 p-3 shadow-[0_16px_44px_rgba(7,35,45,0.048)] ring-1 ring-[#d8dedf]/75 dark:bg-[#0b2230]/72 dark:ring-white/10 sm:p-5">
+        <div className="flex items-center justify-between gap-3 border-b border-[#d8dedf]/85 pb-3 dark:border-white/12">
+          <h1 className="flex items-center gap-2 text-[1.7rem] font-semibold uppercase leading-none tracking-[0.02em] text-[#102b3a] dark:text-[#f4fbff] sm:text-3xl">
+            <Waves className="size-5 text-[#0d9684] sm:size-6" />
             Forecast
           </h1>
-          <Info className="size-5 shrink-0 text-[#7b8c92] dark:text-[#9fb4bc]" aria-hidden />
+          <Info className="size-4 shrink-0 text-[#7b8c92] dark:text-[#9fb4bc]" aria-hidden />
         </div>
         <div>
           <SegmentedTabs
@@ -256,17 +256,17 @@ function SurfOutlookSection({
   const visibleSpots = selectedSpots.length ? selectedSpots : outlook.spots.slice(0, 4);
   const shores = ["north", "south", "east", "west"] as const;
   return (
-    <section className="mt-4 overflow-hidden rounded-[1.25rem] border border-[#d8dedf] bg-[#f7fbfb] shadow-[0_10px_24px_rgba(7,35,45,0.05)] dark:border-white/12 dark:bg-[#0b2230]">
+    <section className="mt-5 overflow-hidden rounded-[1.2rem] bg-[#f7fbfb] shadow-[0_12px_28px_rgba(7,35,45,0.045)] ring-1 ring-[#d8dedf]/80 dark:bg-[#0b2230] dark:ring-white/10">
       <div className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-start sm:justify-between sm:px-4">
         <div>
           <p className="text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#536b73] dark:text-[#b7cbd3]">
             Surf Report
           </p>
-          <h2 className="mt-1 text-lg font-medium leading-tight text-[#102b3a] dark:text-[#f4fbff]">
-            Maui spot forecast
+          <h2 className="mt-1 text-base font-medium leading-tight text-[#102b3a] dark:text-[#f4fbff]">
+            Shore surf forecast
           </h2>
           <p className="mt-1 text-[0.72rem] font-normal leading-4 text-[#70868e] dark:text-[#9fb4bc]">
-            Surf sizes are spot forecasts, not direct buoy observations.
+            Face-size guidance from surf products, separate from offshore swell.
           </p>
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -277,7 +277,7 @@ function SurfOutlookSection({
         </div>
       </div>
       {outlook.briefing ? (
-        <p className="border-t border-[#d8dedf] bg-[#fffaf0] px-3 py-3 text-sm font-normal leading-6 text-[#32464f] dark:border-white/10 dark:bg-white/5 dark:text-[#d6e5ea] sm:px-4">
+        <p className="border-t border-[#d8dedf] bg-[#fffaf0] px-3 py-3 text-[0.9rem] font-normal leading-6 text-[#32464f] dark:border-white/10 dark:bg-white/5 dark:text-[#d6e5ea] sm:px-4">
           {outlook.briefing}
         </p>
       ) : null}
@@ -295,7 +295,7 @@ function SurfOutlookSection({
             {visibleSpots.map((spot) => (
               <div
                 key={spot.id}
-                className="w-[9.5rem] shrink-0 snap-start rounded-2xl border border-[#094c60]/8 bg-[#fbfaf6] px-3 py-3 shadow-[0_6px_14px_rgba(7,35,45,0.035)] dark:border-white/10 dark:bg-[#091d2b]"
+                className="w-[9.5rem] shrink-0 snap-start rounded-[1rem] bg-[#fbfaf6] px-3 py-3 shadow-[0_8px_18px_rgba(7,35,45,0.04)] ring-1 ring-[#094c60]/8 dark:bg-[#091d2b] dark:ring-white/10"
               >
                 <div className="flex items-start justify-between gap-2">
                   <p className="min-w-0 truncate text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#536b73] dark:text-[#b7cbd3]">
@@ -310,7 +310,7 @@ function SurfOutlookSection({
                     />
                   ) : null}
                 </div>
-                <p className="weather-data mt-2 text-3xl leading-none text-[#102b3a] dark:text-[#e9f8fb]">
+                <p className="weather-data mt-2 text-[1.65rem] leading-none text-[#102b3a] dark:text-[#e9f8fb]">
                   {spot.surf}
                 </p>
                 <dl className="mt-2 space-y-1 text-[0.56rem] leading-3 text-[#7b8c92] dark:text-[#9fb4bc]">
@@ -340,7 +340,7 @@ function SurfOutlookSection({
               <p className="text-[0.58rem] font-semibold uppercase tracking-[0.12em] text-[#536b73] dark:text-[#b7cbd3]">
                 {item.label}
               </p>
-              <p className="weather-data mt-1 text-xl leading-none text-[#102b3a] dark:text-[#e9f8fb]">
+              <p className="weather-data mt-1 text-lg leading-none text-[#102b3a] dark:text-[#e9f8fb]">
                 {item.surf ?? "not published"}
               </p>
             </div>
@@ -529,11 +529,11 @@ function ModelTimeline({
   return (
     <section className="overflow-hidden">
       <div className="mb-2 flex justify-end px-1">
-        <span className="text-[0.62rem] font-normal uppercase tracking-[0.12em] text-[#70868e] dark:text-[#9fb4bc]">
+        <span className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#70868e] dark:text-[#9fb4bc]">
           Swipe days
         </span>
       </div>
-      <div className="-mx-3 flex snap-x items-start gap-4 overflow-x-auto px-3 pb-2 sm:-mx-5 sm:px-5">
+      <div className="-mx-3 flex snap-x items-start gap-3 overflow-x-auto px-3 pb-3 sm:-mx-5 sm:gap-4 sm:px-5">
         {days.map((day, index) => {
           const wind = parseWind(day.wind);
           const tone = getWindToneFromText(wind.speed, wind.gust);
@@ -543,14 +543,14 @@ function ModelTimeline({
           return (
             <article
               key={day.day}
-              className="w-[15.75rem] shrink-0 snap-start self-start overflow-hidden rounded-2xl bg-white p-3 shadow-[0_12px_30px_rgba(7,35,45,0.055)] ring-1 ring-[#d8dedf]/70 dark:bg-[#102a3a] dark:ring-white/10 sm:w-[17rem]"
+              className="w-[82vw] max-w-[18rem] shrink-0 snap-start self-start overflow-hidden rounded-[1.15rem] bg-white p-3 shadow-[0_14px_34px_rgba(7,35,45,0.052)] ring-1 ring-[#d8dedf]/72 dark:bg-[#102a3a] dark:ring-white/10 sm:w-[17rem]"
             >
               <div className="flex flex-col items-start gap-2 sm:flex-row sm:justify-between">
-                <h3 className="text-sm font-semibold uppercase tracking-[0.08em] text-[#102b3a] dark:text-[#f4fbff]">
+                <h3 className="text-[0.86rem] font-semibold uppercase tracking-[0.09em] text-[#102b3a] dark:text-[#f4fbff]">
                   {index === 0 ? `TODAY ${getForecastDateLabel(day.day, index)}` : getForecastCardLabel(day.day, index)}
                 </h3>
               </div>
-              <div className="mt-3 overflow-hidden rounded-xl bg-white dark:bg-[#071d2a]">
+              <div className="mt-3 overflow-hidden rounded-[0.95rem] bg-white dark:bg-[#071d2a]">
                 <ForecastWindCard wind={wind} tone={tone} joined />
                 <ForecastEnergyCard
                   groundswell={day.groundswell}
@@ -571,12 +571,12 @@ function ModelTimeline({
 function ForecastWindCard({ wind, tone, hero = false, joined = false }: { wind: ReturnType<typeof parseWind>; tone: WindTone; hero?: boolean; joined?: boolean }) {
   const classes = getWindToneClasses(tone);
   return (
-    <div className={`${joined ? "bg-[#fbfaf6] px-3 py-3 dark:bg-[#071d2a]" : "rounded-xl border border-[#094c60]/10 bg-[#fbfaf6] p-3 dark:border-white/12 dark:bg-[#071d2a]"} ${hero ? "sm:p-3.5" : ""}`}>
+    <div className={`${joined ? "bg-[#fbfaf6] px-3 py-3.5 dark:bg-[#071d2a]" : "rounded-xl border border-[#094c60]/10 bg-[#fbfaf6] p-3 dark:border-white/12 dark:bg-[#071d2a]"} ${hero ? "sm:p-3.5" : ""}`}>
       <div className="flex items-center gap-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#6b7d84]">
         <Navigation className="size-3.5" />
         Wind
       </div>
-      <div className="mt-2 flex items-center gap-2">
+      <div className="mt-2.5 flex items-center gap-2.5">
         <WindArrow degrees={cardinalToDegrees(wind.direction)} large={hero} className={classes.text} />
         <div className="min-w-0">
           <p className={`weather-data leading-none ${classes.text} ${hero ? "text-4xl sm:text-5xl" : "text-2xl"}`}>{wind.direction}</p>
@@ -609,15 +609,17 @@ function ForecastEnergyCard({
       ? "Ground Swell"
       : "Forecast Wind Sea";
   return (
-    <div className={joined ? "bg-[#eaf4fb] px-3 py-3 dark:bg-[#102f46]" : "rounded-xl border border-blue-900/12 bg-[#f4f8f9] p-3 dark:border-white/12 dark:bg-[#071d2a]"}>
+    <div className={joined ? "bg-[#eaf4fb] px-3 py-3.5 dark:bg-[#102f46]" : "rounded-xl border border-blue-900/12 bg-[#f4f8f9] p-3 dark:border-white/12 dark:bg-[#071d2a]"}>
       <div>
         <div>
           <div className="flex items-center gap-1.5 text-[0.58rem] font-semibold uppercase tracking-[0.12em] text-[#61747c]">
             <Waves className="size-3.5" />
             {label}
           </div>
-          <p className="weather-data mt-1 text-xl leading-none text-[#102b3a] dark:text-[#f4fbff]">{energy.height}</p>
-          <p className="mt-1 text-xs font-normal text-[#61747c] dark:text-[#b7cbd3]">{energy.meta}</p>
+          <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <p className="weather-data text-xl leading-none text-[#102b3a] dark:text-[#f4fbff]">{energy.height}</p>
+            <p className="text-xs font-semibold text-[#61747c] dark:text-[#b7cbd3]">{energy.meta}</p>
+          </div>
         </div>
       </div>
     </div>
@@ -626,15 +628,21 @@ function ForecastEnergyCard({
 
 function ForecastRainCard({ rain, detail, joined = false }: { rain: string; detail: string; joined?: boolean }) {
   return (
-    <div className={joined ? "bg-[#eff9f6] px-3 py-3 dark:bg-[#0e2f33]" : "rounded-xl border border-teal-900/12 bg-[#f4faf8] p-3 dark:border-white/12 dark:bg-[#071d2a]"}>
-      <div className="flex items-center gap-2 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#6b7d84]">
+    <div className={joined ? "bg-[#eff9f6] px-3 py-3.5 dark:bg-[#0e2f33]" : "rounded-xl border border-teal-900/12 bg-[#f4faf8] p-3 dark:border-white/12 dark:bg-[#071d2a]"}>
+      <div className="flex items-start gap-2">
         <span className="inline-flex size-6 items-center justify-center rounded-full bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-100">
           <CloudRain className="size-4" />
         </span>
-        Showers
+        <div className="min-w-0">
+          <p className="text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#6b7d84]">
+            Showers
+          </p>
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <p className="weather-data text-lg leading-none text-[#102b3a] dark:text-[#f4fbff]">{rain}</p>
+            <p className="line-clamp-2 text-xs font-normal leading-4 text-[#61747c] dark:text-[#b7cbd3]">{detail}</p>
+          </div>
+        </div>
       </div>
-      <p className="weather-data mt-2 text-xl leading-none text-[#102b3a] dark:text-[#f4fbff]">{rain}</p>
-      <p className="mt-1 line-clamp-2 text-xs font-normal leading-4 text-[#61747c] dark:text-[#b7cbd3]">{detail}</p>
     </div>
   );
 }
@@ -1613,7 +1621,6 @@ function SourceFreshnessBadge({
           ? formatTime(source.fetchedAt)
           : "updated";
   const station = getSourceDisplayName(source);
-  const isMarineZone = source.stationId?.startsWith("PHZ");
   const statusLabel =
     source.status === "live"
       ? `Live · ${freshness}`
@@ -1630,8 +1637,8 @@ function SourceFreshnessBadge({
       : source.source.includes("current prediction")
           ? "NOAA prediction"
           : "Model";
-  const label = isMarineZone ? `${station} · ${statusLabel}` : `${station} · ${statusLabel}`;
-  const className = `inline-flex w-fit max-w-full items-center gap-1 justify-self-start rounded-full border border-[#cbd9dd]/65 bg-white/48 ${compact ? "px-1.5 py-0.5 text-[0.52rem]" : "px-2 py-0.5 text-[0.62rem]"} font-medium uppercase tracking-[0.07em] text-[#5f7078] dark:border-white/10 dark:bg-[#102a3a]/58 dark:text-[#a9c0c8]`;
+  const label = `${station} · ${statusLabel}`;
+  const className = `inline-flex w-fit max-w-full items-center gap-1 justify-self-start rounded-full border border-[#cbd9dd]/60 bg-white/42 ${compact ? "px-1.5 py-0.5 text-[0.52rem]" : "px-2 py-0.5 text-[0.58rem]"} font-medium uppercase tracking-[0.07em] text-[#5f7078] dark:border-white/10 dark:bg-[#102a3a]/54 dark:text-[#a9c0c8]`;
   const content = (
     <>
       <span className={`${compact ? "size-1" : "size-1.5"} rounded-full ${source.status === "live" ? "live-pulse bg-emerald-500 dark:bg-emerald-400" : source.status === "mock" || source.status === "stale" ? "bg-amber-500" : "bg-red-500 dark:bg-red-400"}`} />

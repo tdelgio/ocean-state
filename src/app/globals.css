@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;650;700&family=News+Cycle:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=News+Cycle:wght@400;700&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -8,7 +8,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Inter", "Helvetica Neue", Arial, "Segoe UI", sans-serif;
+  --font-sans: "Helvetica Neue", Arial, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", "SFMono-Regular", "SF Mono", Consolas, monospace;
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -249,9 +249,9 @@
 
 .ocean-card {
   background: #f8fcfd;
-  border-color: rgba(9, 47, 62, 0.1);
+  border-color: rgba(9, 47, 62, 0.085);
   border-radius: 28px;
-  box-shadow: 0 10px 28px rgba(7, 35, 45, 0.055);
+  box-shadow: 0 12px 34px rgba(7, 35, 45, 0.052);
   backdrop-filter: none;
 }
 
@@ -285,16 +285,16 @@
 
 .ocean-card-soft {
   background: #f8fcfd;
-  border-color: rgba(9, 47, 62, 0.1);
+  border-color: rgba(9, 47, 62, 0.085);
   border-radius: 28px;
-  box-shadow: 0 10px 28px rgba(7, 35, 45, 0.055);
+  box-shadow: 0 12px 34px rgba(7, 35, 45, 0.052);
   backdrop-filter: none;
 }
 
 .ocean-row {
   background: #ffffff;
-  border: 1px solid rgba(9, 47, 62, 0.09);
-  box-shadow: 0 6px 16px rgba(7, 35, 45, 0.04);
+  border: 1px solid rgba(9, 47, 62, 0.075);
+  box-shadow: 0 8px 20px rgba(7, 35, 45, 0.035);
 }
 
 .ocean-row:hover,
