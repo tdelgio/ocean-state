@@ -152,6 +152,30 @@ export interface MarineForecastDay {
   source: SourceMeta;
 }
 
+export interface SurfOutlookShore {
+  shoreId: ForecastRegionId;
+  label: string;
+  surf: string | null;
+  summary: string | null;
+}
+
+export interface SurfSpotForecast {
+  id: string;
+  name: string;
+  region: ForecastRegionId;
+  surf: string;
+}
+
+export interface SurfOutlook {
+  issuedAt: string | null;
+  briefing: string | null;
+  spotBriefing: string | null;
+  spots: SurfSpotForecast[];
+  spotSource: SourceMeta | null;
+  shores: Record<ForecastRegionId, SurfOutlookShore>;
+  source: SourceMeta;
+}
+
 export interface ChannelForecastObservation {
   channelId: "pailolo" | "kaiwi" | "alenuihaha";
   displayName: string;
@@ -215,6 +239,7 @@ export interface OceanConditionSnapshot {
   forecastWindows: ForecastWindow[];
   shoreForecastWindows: Record<ForecastRegionId, ForecastWindow[]>;
   marineForecastDays: Record<"windward" | "leeward", MarineForecastDay[]>;
+  surfOutlook: SurfOutlook | null;
   channelForecasts: Record<ChannelForecastObservation["channelId"], ChannelForecastObservation>;
   channelCurrents: Record<ChannelForecastObservation["channelId"], CurrentObservation>;
   alerts: WeatherAlert[];

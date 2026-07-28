@@ -6,6 +6,7 @@ import {
   CloudRain,
   Compass,
   ExternalLink,
+  Info,
   Navigation,
   Ship,
   Waves,
@@ -211,12 +212,16 @@ export function ExtendedForecastOverview({
   selectedRegion?: ForecastRegion;
 }) {
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6">
-      <section className="ocean-card rounded-[1.5rem] border p-3.5 sm:p-5">
-        <h1 className="text-2xl font-semibold uppercase tracking-[0.04em] text-[#102b3a] sm:text-3xl">
-          Forecast
-        </h1>
-        <div className="mt-3">
+    <div className="mx-auto w-full max-w-6xl space-y-5">
+      <section className="rounded-[1.25rem] bg-white/62 p-3 shadow-[0_14px_36px_rgba(7,35,45,0.045)] dark:bg-[#0b2230]/72 sm:p-5">
+        <div className="flex items-center justify-between gap-3 border-b border-[#d8dedf] pb-3 dark:border-white/12">
+          <h1 className="flex items-center gap-2 text-2xl font-semibold uppercase tracking-[0.02em] text-[#102b3a] dark:text-[#f4fbff] sm:text-3xl">
+            <Waves className="size-6 text-[#0d9684] sm:size-7" />
+            Forecast
+          </h1>
+          <Info className="size-5 shrink-0 text-[#7b8c92] dark:text-[#9fb4bc]" aria-hidden />
+        </div>
+        <div>
           <SegmentedTabs
             items={[
               { id: "north", label: "North", href: "/forecast?region=north" },
@@ -228,12 +233,147 @@ export function ExtendedForecastOverview({
             fullWidth
           />
         </div>
-        <div className="mt-4">
+        <div className="mt-5">
           <ModelTimeline snapshot={snapshot} region={selectedRegion} />
         </div>
+        <SurfOutlookSection snapshot={snapshot} selectedRegion={selectedRegion} />
       </section>
     </div>
   );
+}
+
+function SurfOutlookSection({
+  snapshot,
+  selectedRegion,
+}: {
+  snapshot: OceanConditionSnapshot;
+  selectedRegion: ForecastRegion;
+}) {
+  const outlook = snapshot.surfOutlook;
+  if (!outlook) return null;
+  const selected = outlook.shores[selectedRegion];
+  const selectedSpots = outlook.spots.filter((spot) => spot.region === selectedRegion);
+  const visibleSpots = selectedSpots.length ? selectedSpots : outlook.spots.slice(0, 4);
+  const shores = ["north", "south", "east", "west"] as const;
+  return (
+    <section className="mt-4 overflow-hidden rounded-[1.25rem] border border-[#d8dedf] bg-[#f7fbfb] shadow-[0_10px_24px_rgba(7,35,45,0.05)] dark:border-white/12 dark:bg-[#0b2230]">
+      <div className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-start sm:justify-between sm:px-4">
+        <div>
+          <p className="text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#536b73] dark:text-[#b7cbd3]">
+            Surf Report
+          </p>
+          <h2 className="mt-1 text-lg font-medium leading-tight text-[#102b3a] dark:text-[#f4fbff]">
+            Maui spot forecast
+          </h2>
+          <p className="mt-1 text-[0.72rem] font-normal leading-4 text-[#70868e] dark:text-[#9fb4bc]">
+            Surf sizes are spot forecasts, not direct buoy observations.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {outlook.spotSource ? (
+            <SurfSourceLink source={outlook.spotSource} label="Maui Weather Today" />
+          ) : null}
+          <SurfSourceLink source={outlook.source} label={`NOAA SRF${outlook.issuedAt ? ` · ${formatTime(outlook.issuedAt)}` : ""}`} />
+        </div>
+      </div>
+      {outlook.briefing ? (
+        <p className="border-t border-[#d8dedf] bg-[#fffaf0] px-3 py-3 text-sm font-normal leading-6 text-[#32464f] dark:border-white/10 dark:bg-white/5 dark:text-[#d6e5ea] sm:px-4">
+          {outlook.briefing}
+        </p>
+      ) : null}
+      {visibleSpots.length ? (
+        <div className="border-t border-[#d8dedf] bg-white/55 px-3 py-3 dark:border-white/10 dark:bg-white/5 sm:px-4">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#536b73] dark:text-[#b7cbd3]">
+              {selectedRegion} spots
+            </p>
+            <span className="text-[0.58rem] font-normal uppercase tracking-[0.12em] text-[#70868e] dark:text-[#9fb4bc]">
+              face size approx 2x
+            </span>
+          </div>
+          <div className="-mx-3 flex snap-x gap-2 overflow-x-auto px-3 pb-1">
+            {visibleSpots.map((spot) => (
+              <div
+                key={spot.id}
+                className="w-[9.5rem] shrink-0 snap-start rounded-2xl border border-[#094c60]/8 bg-[#fbfaf6] px-3 py-3 shadow-[0_6px_14px_rgba(7,35,45,0.035)] dark:border-white/10 dark:bg-[#091d2b]"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="min-w-0 truncate text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#536b73] dark:text-[#b7cbd3]">
+                    {spot.name}
+                  </p>
+                  {outlook.spotSource ? (
+                    <RunSourcePopover
+                      sourceName={outlook.spotSource.source}
+                      updated={formatSurfSourceUpdated(outlook.spotSource)}
+                      sourceType="PROXY · surf spot forecast from the Maui Beaches section"
+                      sourceUrl={outlook.spotSource.sourceUrl}
+                    />
+                  ) : null}
+                </div>
+                <p className="weather-data mt-2 text-3xl leading-none text-[#102b3a] dark:text-[#e9f8fb]">
+                  {spot.surf}
+                </p>
+                <dl className="mt-2 space-y-1 text-[0.56rem] leading-3 text-[#7b8c92] dark:text-[#9fb4bc]">
+                  <div>
+                    <dt className="font-semibold uppercase tracking-[0.11em]">Source</dt>
+                    <dd>{outlook.spotSource ? "Maui Weather Today" : "NOAA SRF"}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold uppercase tracking-[0.11em]">Updated</dt>
+                    <dd>{outlook.spotSource ? formatSurfSourceUpdated(outlook.spotSource).replace(/^(Fetched|Issued)\s+/i, "") : outlook.issuedAt ? formatTime(outlook.issuedAt) : "unavailable"}</dd>
+                  </div>
+                </dl>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      <div className="grid grid-cols-2 bg-[#eaf4fb] dark:bg-[#102f46] sm:grid-cols-4">
+        {shores.map((shore) => {
+          const item = outlook.shores[shore];
+          const active = shore === selectedRegion;
+          return (
+            <div
+              key={shore}
+              className={`min-w-0 px-3 py-3 ${active ? "bg-white/58 dark:bg-white/10" : ""} ${shore !== "north" ? "border-l border-white/55 dark:border-white/10" : ""} ${shore === "east" ? "border-l-0 border-t border-white/55 dark:border-white/10 sm:border-l sm:border-t-0" : ""}`}
+            >
+              <p className="text-[0.58rem] font-semibold uppercase tracking-[0.12em] text-[#536b73] dark:text-[#b7cbd3]">
+                {item.label}
+              </p>
+              <p className="weather-data mt-1 text-xl leading-none text-[#102b3a] dark:text-[#e9f8fb]">
+                {item.surf ?? "not published"}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+      {selected?.summary ? (
+        <p className="px-3 py-2.5 text-xs font-semibold leading-4 text-[#70868e] dark:text-[#9fb4bc] sm:px-4">
+          {selected.label}: {selected.summary}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+function SurfSourceLink({ source, label }: { source: SourceLike; label: string }) {
+  return (
+    <Link
+      href={source.sourceUrl ?? "https://www.weather.gov/hfo/SRF"}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex items-center gap-1.5 rounded-full border border-[#094c60]/10 bg-white/65 px-2 py-0.5 text-[0.55rem] font-medium uppercase tracking-[0.1em] text-[#536b73] dark:border-white/12 dark:bg-[#102a3a] dark:text-[#b7cbd3]"
+    >
+      <span className="size-1.5 rounded-full bg-emerald-500" />
+      {label}
+    </Link>
+  );
+}
+
+function formatSurfSourceUpdated(source: SourceLike) {
+  if (source.observedAt) return `Issued ${formatTime(source.observedAt)}`;
+  if (source.fetchedAt) return `Fetched ${formatTime(source.fetchedAt)}`;
+  return "Update time unavailable";
 }
 
 function ShoresMode({
@@ -387,13 +527,13 @@ function ModelTimeline({
   );
 
   return (
-    <section className="overflow-hidden rounded-[1.25rem] border border-[#d8dedf] bg-[#fbfaf6] p-2.5 shadow-[0_14px_32px_rgba(8,74,92,0.07)] dark:border-white/14 dark:bg-[#0b2230] sm:p-4">
+    <section className="overflow-hidden">
       <div className="mb-2 flex justify-end px-1">
-        <span className="text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-[#70868e] dark:text-[#9fb4bc]">
-          Swipe
+        <span className="text-[0.62rem] font-normal uppercase tracking-[0.12em] text-[#70868e] dark:text-[#9fb4bc]">
+          Swipe days
         </span>
       </div>
-      <div className="flex snap-x items-start gap-3 overflow-x-auto pb-1">
+      <div className="-mx-3 flex snap-x items-start gap-4 overflow-x-auto px-3 pb-2 sm:-mx-5 sm:px-5">
         {days.map((day, index) => {
           const wind = parseWind(day.wind);
           const tone = getWindToneFromText(wind.speed, wind.gust);
@@ -403,14 +543,14 @@ function ModelTimeline({
           return (
             <article
               key={day.day}
-              className="w-[15.5rem] shrink-0 snap-start self-start rounded-2xl border border-[#d8dedf] bg-white p-3 shadow-[0_8px_20px_rgba(7,35,45,0.04)] dark:border-white/12 dark:bg-[#102a3a] sm:w-[16.5rem]"
+              className="w-[15.75rem] shrink-0 snap-start self-start overflow-hidden rounded-2xl bg-white p-3 shadow-[0_12px_30px_rgba(7,35,45,0.055)] ring-1 ring-[#d8dedf]/70 dark:bg-[#102a3a] dark:ring-white/10 sm:w-[17rem]"
             >
               <div className="flex flex-col items-start gap-2 sm:flex-row sm:justify-between">
-                <h3 className="text-base font-semibold uppercase tracking-[0.04em] text-[#102b3a]">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.08em] text-[#102b3a] dark:text-[#f4fbff]">
                   {index === 0 ? `TODAY ${getForecastDateLabel(day.day, index)}` : getForecastCardLabel(day.day, index)}
                 </h3>
               </div>
-              <div className="mt-3 overflow-hidden rounded-xl border border-[#d8dedf] bg-white dark:border-white/12 dark:bg-[#071d2a]">
+              <div className="mt-3 overflow-hidden rounded-xl bg-white dark:bg-[#071d2a]">
                 <ForecastWindCard wind={wind} tone={tone} joined />
                 <ForecastEnergyCard
                   groundswell={day.groundswell}
@@ -432,7 +572,7 @@ function ForecastWindCard({ wind, tone, hero = false, joined = false }: { wind: 
   const classes = getWindToneClasses(tone);
   return (
     <div className={`${joined ? "bg-[#fbfaf6] px-3 py-3 dark:bg-[#071d2a]" : "rounded-xl border border-[#094c60]/10 bg-[#fbfaf6] p-3 dark:border-white/12 dark:bg-[#071d2a]"} ${hero ? "sm:p-3.5" : ""}`}>
-      <div className="flex items-center gap-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-[#6b7d84]">
+      <div className="flex items-center gap-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#6b7d84]">
         <Navigation className="size-3.5" />
         Wind
       </div>
@@ -440,7 +580,7 @@ function ForecastWindCard({ wind, tone, hero = false, joined = false }: { wind: 
         <WindArrow degrees={cardinalToDegrees(wind.direction)} large={hero} className={classes.text} />
         <div className="min-w-0">
           <p className={`weather-data leading-none ${classes.text} ${hero ? "text-4xl sm:text-5xl" : "text-2xl"}`}>{wind.direction}</p>
-          <p className={`weather-data mt-1 leading-tight ${classes.speedText} ${hero ? "text-xl sm:text-2xl" : "text-base"}`}>{wind.speed}</p>
+          <p className={`weather-data mt-1 leading-tight ${classes.speedText} ${hero ? "text-xl sm:text-2xl" : "text-[0.95rem]"}`}>{wind.speed}</p>
           {wind.gust !== "-" ? (
             <p className={`mt-1 w-fit ${classes.badge} weather-data`}>gust {wind.gust}</p>
           ) : null}
@@ -472,12 +612,12 @@ function ForecastEnergyCard({
     <div className={joined ? "bg-[#eaf4fb] px-3 py-3 dark:bg-[#102f46]" : "rounded-xl border border-blue-900/12 bg-[#f4f8f9] p-3 dark:border-white/12 dark:bg-[#071d2a]"}>
       <div>
         <div>
-          <div className="flex items-center gap-1.5 text-[0.58rem] font-semibold uppercase tracking-[0.08em] text-[#61747c]">
+          <div className="flex items-center gap-1.5 text-[0.58rem] font-semibold uppercase tracking-[0.12em] text-[#61747c]">
             <Waves className="size-3.5" />
             {label}
           </div>
-          <p className="weather-data mt-1 text-xl leading-none text-[#102b3a]">{energy.height}</p>
-          <p className="mt-1 text-xs font-semibold text-[#61747c]">{energy.meta}</p>
+          <p className="weather-data mt-1 text-xl leading-none text-[#102b3a] dark:text-[#f4fbff]">{energy.height}</p>
+          <p className="mt-1 text-xs font-normal text-[#61747c] dark:text-[#b7cbd3]">{energy.meta}</p>
         </div>
       </div>
     </div>
@@ -487,14 +627,14 @@ function ForecastEnergyCard({
 function ForecastRainCard({ rain, detail, joined = false }: { rain: string; detail: string; joined?: boolean }) {
   return (
     <div className={joined ? "bg-[#eff9f6] px-3 py-3 dark:bg-[#0e2f33]" : "rounded-xl border border-teal-900/12 bg-[#f4faf8] p-3 dark:border-white/12 dark:bg-[#071d2a]"}>
-      <div className="flex items-center gap-2 text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-[#6b7d84]">
-        <span className="inline-flex size-7 items-center justify-center rounded-full bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-100">
+      <div className="flex items-center gap-2 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#6b7d84]">
+        <span className="inline-flex size-6 items-center justify-center rounded-full bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-100">
           <CloudRain className="size-4" />
         </span>
         Showers
       </div>
-      <p className="weather-data mt-2 text-xl leading-none text-[#102b3a]">{rain}</p>
-      <p className="mt-1 line-clamp-2 text-xs font-semibold leading-4 text-[#61747c]">{detail}</p>
+      <p className="weather-data mt-2 text-xl leading-none text-[#102b3a] dark:text-[#f4fbff]">{rain}</p>
+      <p className="mt-1 line-clamp-2 text-xs font-normal leading-4 text-[#61747c] dark:text-[#b7cbd3]">{detail}</p>
     </div>
   );
 }
@@ -571,17 +711,41 @@ function SegmentedTabs({
   activeId: string;
   fullWidth?: boolean;
 }) {
+  if (fullWidth) {
+    return (
+      <div className="flex w-full max-w-full overflow-x-auto border-b border-[#d8dedf] dark:border-white/12">
+        {items.map((item, index) => (
+          <Link
+            key={item.id}
+            href={item.href}
+            prefetch={false}
+            className={`relative min-w-0 flex-1 px-2 py-3 text-center text-[0.68rem] font-semibold uppercase tracking-[0.12em] transition sm:text-xs sm:tracking-[0.16em] ${
+              item.id === activeId
+                ? "text-[#102b3a] dark:text-white"
+                : "text-[#657981] hover:text-[#102b3a] dark:text-[#9fb4bc] dark:hover:text-white"
+            } ${index > 0 ? "before:absolute before:left-0 before:top-1/2 before:h-4 before:w-px before:-translate-y-1/2 before:bg-[#d8dedf] before:content-[''] dark:before:bg-white/12" : ""}`}
+          >
+            {item.label}
+            {item.id === activeId ? (
+              <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-[#0d9684] dark:bg-[#17d3b2]" />
+            ) : null}
+          </Link>
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className={`${fullWidth ? "flex w-full" : "inline-flex w-fit"} max-w-full gap-1 overflow-x-auto rounded-2xl border border-[#d8dedf] bg-[#f8fcfd] p-1 dark:border-white/12 dark:bg-[#0b2230]`}>
+    <div className="inline-flex w-fit max-w-full gap-0 overflow-x-auto rounded-2xl border border-[#d8dedf] bg-[#f8fcfd]/78 p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] dark:border-white/12 dark:bg-[#071d2a]">
       {items.map((item) => (
         <Link
           key={item.id}
           href={item.href}
           prefetch={false}
-          className={`${fullWidth ? "min-w-0 flex-1 text-center" : "shrink-0"} rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-[0.11em] transition sm:px-4 sm:tracking-[0.14em] ${
+          className={`shrink-0 rounded-[0.9rem] px-2.5 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.12em] transition sm:px-4 sm:text-xs sm:tracking-[0.14em] ${
             item.id === activeId
-              ? "bg-[#17242c] text-white shadow-[0_8px_18px_rgba(7,35,45,0.12)] dark:bg-white dark:text-[#071723]"
-              : "text-[#526a73] hover:bg-white hover:text-[#17242c] dark:text-[#b7cbd3] dark:hover:bg-[#102a3a] dark:hover:text-white"
+              ? "bg-[#102b3a] text-white shadow-[0_8px_18px_rgba(7,35,45,0.12)] dark:bg-[#17d3b2] dark:text-[#06151c]"
+              : "text-[#5f7078] hover:bg-white/80 hover:text-[#102b3a] dark:text-[#b7cbd3] dark:hover:bg-white/8 dark:hover:text-white"
           }`}
         >
           {item.label}
@@ -1452,18 +1616,22 @@ function SourceFreshnessBadge({
   const isMarineZone = source.stationId?.startsWith("PHZ");
   const statusLabel =
     source.status === "live"
-      ? freshness
+      ? `Live · ${freshness}`
       : source.source.includes("MFM forecast")
-        ? `Forecast · ${freshness}`
+        ? `Model · ${freshness}`
       : source.source.includes("Coastal Waters Forecast")
-        ? `Forecast · ${freshness}`
+        ? `Model · ${freshness}`
+      : source.source.includes("NWS hourly forecast")
+        ? `Model · ${freshness}`
+      : source.status === "mock"
+        ? "Mock"
       : source.status === "missing" || source.status === "error"
-        ? "Data unavailable"
-        : source.source.includes("current prediction")
+        ? "Unavailable"
+      : source.source.includes("current prediction")
           ? "NOAA prediction"
-          : "Model estimate";
-  const label = isMarineZone ? `${station} · ${source.source.includes("Forecast") ? statusLabel : source.status === "live" ? "Live" : "Data unavailable"}` : `${station} · ${statusLabel}`;
-  const className = `inline-flex w-fit max-w-full items-center gap-1 justify-self-start rounded-full border border-[#cbd9dd]/70 bg-white/55 ${compact ? "px-1.5 py-0.5 text-[0.54rem]" : "px-2.5 py-1 text-[0.68rem]"} font-semibold uppercase tracking-[0.04em] text-[#5f7078] dark:border-white/10 dark:bg-[#102a3a]/70 dark:text-[#a9c0c8]`;
+          : "Model";
+  const label = isMarineZone ? `${station} · ${statusLabel}` : `${station} · ${statusLabel}`;
+  const className = `inline-flex w-fit max-w-full items-center gap-1 justify-self-start rounded-full border border-[#cbd9dd]/65 bg-white/48 ${compact ? "px-1.5 py-0.5 text-[0.52rem]" : "px-2 py-0.5 text-[0.62rem]"} font-medium uppercase tracking-[0.07em] text-[#5f7078] dark:border-white/10 dark:bg-[#102a3a]/58 dark:text-[#a9c0c8]`;
   const content = (
     <>
       <span className={`${compact ? "size-1" : "size-1.5"} rounded-full ${source.status === "live" ? "live-pulse bg-emerald-500 dark:bg-emerald-400" : source.status === "mock" || source.status === "stale" ? "bg-amber-500" : "bg-red-500 dark:bg-red-400"}`} />
@@ -1553,7 +1721,7 @@ function CategoryPill({
   };
   return (
     <span
-      className={`inline-flex rounded-full border px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.1em] ${classes[tone]}`}
+      className={`inline-flex rounded-full border px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-[0.12em] ${classes[tone]}`}
     >
       {label}
     </span>
