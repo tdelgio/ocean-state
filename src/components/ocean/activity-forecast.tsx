@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ElementType } from "react";
+import type { ElementType, ReactNode } from "react";
 import {
   ArrowUp,
   AlertTriangle,
@@ -212,11 +212,11 @@ export function ExtendedForecastOverview({
   selectedRegion?: ForecastRegion;
 }) {
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-5">
-      <section className="rounded-[1.35rem] bg-white/66 p-3 shadow-[0_16px_44px_rgba(7,35,45,0.048)] ring-1 ring-[#d8dedf]/75 dark:bg-[#0b2230]/72 dark:ring-white/10 sm:p-5">
-        <div className="flex items-center justify-between gap-3 border-b border-[#d8dedf]/85 pb-3 dark:border-white/12">
-          <h1 className="flex items-center gap-2 text-[1.7rem] font-semibold uppercase leading-none tracking-[0.02em] text-[#102b3a] dark:text-[#f4fbff] sm:text-3xl">
-            <Waves className="size-5 text-[#0d9684] sm:size-6" />
+    <div className="mx-auto w-full max-w-6xl space-y-4">
+      <section className="rounded-[1.15rem] bg-white/58 p-2.5 shadow-[0_14px_36px_rgba(7,35,45,0.04)] ring-1 ring-[#d8dedf]/70 dark:bg-[#0b2230]/72 dark:ring-white/10 sm:p-4">
+        <div className="flex items-center justify-between gap-3 border-b border-[#d8dedf]/75 px-0.5 pb-2.5 dark:border-white/12">
+          <h1 className="flex items-center gap-2 text-xl font-semibold uppercase leading-none tracking-[0.03em] text-[#102b3a] dark:text-[#f4fbff] sm:text-2xl">
+            <Waves className="size-4 text-[#0d9684] sm:size-5" />
             Forecast
           </h1>
           <Info className="size-4 shrink-0 text-[#7b8c92] dark:text-[#9fb4bc]" aria-hidden />
@@ -233,147 +233,12 @@ export function ExtendedForecastOverview({
             fullWidth
           />
         </div>
-        <div className="mt-5">
+        <div className="mt-4">
           <ModelTimeline snapshot={snapshot} region={selectedRegion} />
         </div>
-        <SurfOutlookSection snapshot={snapshot} selectedRegion={selectedRegion} />
       </section>
     </div>
   );
-}
-
-function SurfOutlookSection({
-  snapshot,
-  selectedRegion,
-}: {
-  snapshot: OceanConditionSnapshot;
-  selectedRegion: ForecastRegion;
-}) {
-  const outlook = snapshot.surfOutlook;
-  if (!outlook) return null;
-  const selected = outlook.shores[selectedRegion];
-  const selectedSpots = outlook.spots.filter((spot) => spot.region === selectedRegion);
-  const visibleSpots = selectedSpots.length ? selectedSpots : outlook.spots.slice(0, 4);
-  const shores = ["north", "south", "east", "west"] as const;
-  return (
-    <section className="mt-5 overflow-hidden rounded-[1.2rem] bg-[#f7fbfb] shadow-[0_12px_28px_rgba(7,35,45,0.045)] ring-1 ring-[#d8dedf]/80 dark:bg-[#0b2230] dark:ring-white/10">
-      <div className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-start sm:justify-between sm:px-4">
-        <div>
-          <p className="text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#536b73] dark:text-[#b7cbd3]">
-            Surf Report
-          </p>
-          <h2 className="mt-1 text-base font-medium leading-tight text-[#102b3a] dark:text-[#f4fbff]">
-            Shore surf forecast
-          </h2>
-          <p className="mt-1 text-[0.72rem] font-normal leading-4 text-[#70868e] dark:text-[#9fb4bc]">
-            Face-size guidance from surf products, separate from offshore swell.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {outlook.spotSource ? (
-            <SurfSourceLink source={outlook.spotSource} label="Maui Weather Today" />
-          ) : null}
-          <SurfSourceLink source={outlook.source} label={`NOAA SRF${outlook.issuedAt ? ` · ${formatTime(outlook.issuedAt)}` : ""}`} />
-        </div>
-      </div>
-      {outlook.briefing ? (
-        <p className="border-t border-[#d8dedf] bg-[#fffaf0] px-3 py-3 text-[0.9rem] font-normal leading-6 text-[#32464f] dark:border-white/10 dark:bg-white/5 dark:text-[#d6e5ea] sm:px-4">
-          {outlook.briefing}
-        </p>
-      ) : null}
-      {visibleSpots.length ? (
-        <div className="border-t border-[#d8dedf] bg-white/55 px-3 py-3 dark:border-white/10 dark:bg-white/5 sm:px-4">
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <p className="text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#536b73] dark:text-[#b7cbd3]">
-              {selectedRegion} spots
-            </p>
-            <span className="text-[0.58rem] font-normal uppercase tracking-[0.12em] text-[#70868e] dark:text-[#9fb4bc]">
-              face size approx 2x
-            </span>
-          </div>
-          <div className="-mx-3 flex snap-x gap-2 overflow-x-auto px-3 pb-1">
-            {visibleSpots.map((spot) => (
-              <div
-                key={spot.id}
-                className="w-[9.5rem] shrink-0 snap-start rounded-[1rem] bg-[#fbfaf6] px-3 py-3 shadow-[0_8px_18px_rgba(7,35,45,0.04)] ring-1 ring-[#094c60]/8 dark:bg-[#091d2b] dark:ring-white/10"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="min-w-0 truncate text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#536b73] dark:text-[#b7cbd3]">
-                    {spot.name}
-                  </p>
-                  {outlook.spotSource ? (
-                    <RunSourcePopover
-                      sourceName={outlook.spotSource.source}
-                      updated={formatSurfSourceUpdated(outlook.spotSource)}
-                      sourceType="PROXY · surf spot forecast from the Maui Beaches section"
-                      sourceUrl={outlook.spotSource.sourceUrl}
-                    />
-                  ) : null}
-                </div>
-                <p className="weather-data mt-2 text-[1.65rem] leading-none text-[#102b3a] dark:text-[#e9f8fb]">
-                  {spot.surf}
-                </p>
-                <dl className="mt-2 space-y-1 text-[0.56rem] leading-3 text-[#7b8c92] dark:text-[#9fb4bc]">
-                  <div>
-                    <dt className="font-semibold uppercase tracking-[0.11em]">Source</dt>
-                    <dd>{outlook.spotSource ? "Maui Weather Today" : "NOAA SRF"}</dd>
-                  </div>
-                  <div>
-                    <dt className="font-semibold uppercase tracking-[0.11em]">Updated</dt>
-                    <dd>{outlook.spotSource ? formatSurfSourceUpdated(outlook.spotSource).replace(/^(Fetched|Issued)\s+/i, "") : outlook.issuedAt ? formatTime(outlook.issuedAt) : "unavailable"}</dd>
-                  </div>
-                </dl>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-      <div className="grid grid-cols-2 bg-[#eaf4fb] dark:bg-[#102f46] sm:grid-cols-4">
-        {shores.map((shore) => {
-          const item = outlook.shores[shore];
-          const active = shore === selectedRegion;
-          return (
-            <div
-              key={shore}
-              className={`min-w-0 px-3 py-3 ${active ? "bg-white/58 dark:bg-white/10" : ""} ${shore !== "north" ? "border-l border-white/55 dark:border-white/10" : ""} ${shore === "east" ? "border-l-0 border-t border-white/55 dark:border-white/10 sm:border-l sm:border-t-0" : ""}`}
-            >
-              <p className="text-[0.58rem] font-semibold uppercase tracking-[0.12em] text-[#536b73] dark:text-[#b7cbd3]">
-                {item.label}
-              </p>
-              <p className="weather-data mt-1 text-lg leading-none text-[#102b3a] dark:text-[#e9f8fb]">
-                {item.surf ?? "not published"}
-              </p>
-            </div>
-          );
-        })}
-      </div>
-      {selected?.summary ? (
-        <p className="px-3 py-2.5 text-xs font-semibold leading-4 text-[#70868e] dark:text-[#9fb4bc] sm:px-4">
-          {selected.label}: {selected.summary}
-        </p>
-      ) : null}
-    </section>
-  );
-}
-
-function SurfSourceLink({ source, label }: { source: SourceLike; label: string }) {
-  return (
-    <Link
-      href={source.sourceUrl ?? "https://www.weather.gov/hfo/SRF"}
-      target="_blank"
-      rel="noreferrer"
-      className="inline-flex items-center gap-1.5 rounded-full border border-[#094c60]/10 bg-white/65 px-2 py-0.5 text-[0.55rem] font-medium uppercase tracking-[0.1em] text-[#536b73] dark:border-white/12 dark:bg-[#102a3a] dark:text-[#b7cbd3]"
-    >
-      <span className="size-1.5 rounded-full bg-emerald-500" />
-      {label}
-    </Link>
-  );
-}
-
-function formatSurfSourceUpdated(source: SourceLike) {
-  if (source.observedAt) return `Issued ${formatTime(source.observedAt)}`;
-  if (source.fetchedAt) return `Fetched ${formatTime(source.fetchedAt)}`;
-  return "Update time unavailable";
 }
 
 function ShoresMode({
@@ -520,131 +385,368 @@ function ModelTimeline({
 }) {
   const regionConfig = getForecastRegionConfig(region);
   const zone = regionConfig.zone;
+  const windows = snapshot.shoreForecastWindows[region];
   const days = buildFiveDayForecast(
-    snapshot.shoreForecastWindows[region],
+    windows,
     zone,
     snapshot.marineForecastDays[zone],
   );
+  const slots = buildForecastMatrixSlots(windows, days, snapshot, region);
 
   return (
     <section className="overflow-hidden">
-      <div className="mb-2 flex justify-end px-1">
+      <div className="mb-2 flex items-center justify-between px-1">
         <span className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#70868e] dark:text-[#9fb4bc]">
-          Swipe days
+          3 day outlook
+        </span>
+        <span className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#70868e] dark:text-[#9fb4bc]">
+          6a · 12p · 6p
         </span>
       </div>
-      <div className="-mx-3 flex snap-x items-start gap-3 overflow-x-auto px-3 pb-3 sm:-mx-5 sm:gap-4 sm:px-5">
-        {days.map((day, index) => {
-          const wind = parseWind(day.wind);
-          const tone = getWindToneFromText(wind.speed, wind.gust);
-          const observedGroundswell = index === 0
-            ? getObservedGroundswellForForecast(snapshot, region)
-            : null;
-          return (
-            <article
-              key={day.day}
-              className="w-[82vw] max-w-[18rem] shrink-0 snap-start self-start overflow-hidden rounded-[1.15rem] bg-white p-3 shadow-[0_14px_34px_rgba(7,35,45,0.052)] ring-1 ring-[#d8dedf]/72 dark:bg-[#102a3a] dark:ring-white/10 sm:w-[17rem]"
-            >
-              <div className="flex flex-col items-start gap-2 sm:flex-row sm:justify-between">
-                <h3 className="text-[0.86rem] font-semibold uppercase tracking-[0.09em] text-[#102b3a] dark:text-[#f4fbff]">
-                  {index === 0 ? `TODAY ${getForecastDateLabel(day.day, index)}` : getForecastCardLabel(day.day, index)}
-                </h3>
-              </div>
-              <div className="mt-3 overflow-hidden rounded-[0.95rem] bg-white dark:bg-[#071d2a]">
-                <ForecastWindCard wind={wind} tone={tone} joined />
-                <ForecastEnergyCard
-                  groundswell={day.groundswell}
-                  observedGroundswell={observedGroundswell}
-                  windSwell={day.bumpEnergy}
-                  joined
-                />
-                <ForecastRainCard rain={day.rain} detail={day.read} joined />
-              </div>
-            </article>
-          );
-        })}
-      </div>
+      <ForecastMatrix slots={slots} />
     </section>
   );
 }
 
-function ForecastWindCard({ wind, tone, hero = false, joined = false }: { wind: ReturnType<typeof parseWind>; tone: WindTone; hero?: boolean; joined?: boolean }) {
-  const classes = getWindToneClasses(tone);
+type ForecastMatrixSlot = {
+  key: string;
+  day: string;
+  time: string;
+  windDirection: string;
+  windSpeed: string;
+  gust: string;
+  wave: string;
+  period: string;
+  waveDirection: string;
+  rain: string;
+  tone: WindTone;
+};
+
+function ForecastMatrix({ slots }: { slots: ForecastMatrixSlot[] }) {
+  const columns = `3.65rem repeat(${slots.length}, minmax(3.2rem, 1fr))`;
+  const cellBase = "min-h-[2.25rem] px-1.5 py-1 text-center";
+  const hasGust = slots.some((slot) => slot.gust !== "-");
   return (
-    <div className={`${joined ? "bg-[#fbfaf6] px-3 py-3.5 dark:bg-[#071d2a]" : "rounded-xl border border-[#094c60]/10 bg-[#fbfaf6] p-3 dark:border-white/12 dark:bg-[#071d2a]"} ${hero ? "sm:p-3.5" : ""}`}>
-      <div className="flex items-center gap-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#6b7d84]">
-        <Navigation className="size-3.5" />
-        Wind
-      </div>
-      <div className="mt-2.5 flex items-center gap-2.5">
-        <WindArrow degrees={cardinalToDegrees(wind.direction)} large={hero} className={classes.text} />
-        <div className="min-w-0">
-          <p className={`weather-data leading-none ${classes.text} ${hero ? "text-4xl sm:text-5xl" : "text-2xl"}`}>{wind.direction}</p>
-          <p className={`weather-data mt-1 leading-tight ${classes.speedText} ${hero ? "text-xl sm:text-2xl" : "text-[0.95rem]"}`}>{wind.speed}</p>
-          {wind.gust !== "-" ? (
-            <p className={`mt-1 w-fit ${classes.badge} weather-data`}>gust {wind.gust}</p>
-          ) : null}
-        </div>
+    <div className="-mx-3 overflow-x-auto px-3 pb-3 sm:-mx-5 sm:px-5">
+      <div
+        className="min-w-[32.5rem] overflow-hidden rounded-[0.95rem] bg-white shadow-[0_10px_24px_rgba(7,35,45,0.04)] ring-1 ring-[#d8dedf]/65 dark:bg-[#102a3a] dark:ring-white/10"
+        style={{ gridTemplateColumns: columns }}
+      >
+        <ForecastMatrixRow label="Date" columns={columns} labelClassName="bg-white dark:bg-[#102a3a]">
+          {slots.map((slot, index) => (
+            <div key={`${slot.key}-day`} className={`${cellBase} min-h-[2rem] bg-white dark:bg-[#102a3a]`}>
+              <p className="text-[0.5rem] font-semibold uppercase tracking-[0.08em] text-[#102b3a] dark:text-[#f4fbff]">
+                {index === 0 || slot.day !== slots[index - 1]?.day ? slot.day : ""}
+              </p>
+            </div>
+          ))}
+        </ForecastMatrixRow>
+
+        <ForecastMatrixRow label="Hour" columns={columns}>
+          {slots.map((slot) => (
+            <div key={`${slot.key}-time`} className={`${cellBase} min-h-[1.95rem] bg-[#f7f5ef] dark:bg-[#071d2a]`}>
+              <p className="weather-data text-xs leading-none text-[#102b3a] dark:text-[#f4fbff]">{slot.time}</p>
+            </div>
+          ))}
+        </ForecastMatrixRow>
+
+        <ForecastMatrixRow label="Wind" columns={columns}>
+          {slots.map((slot) => {
+            const power = getForecastPowerClasses(slot.tone);
+            return (
+              <div key={`${slot.key}-wind`} className={`${cellBase} ${power.background}`}>
+                <p className={`weather-data text-[0.9rem] leading-none ${power.speedText}`}>{slot.windSpeed} kt</p>
+                <div className="mt-0.5 flex items-center justify-center gap-0.5">
+                  <WindArrow degrees={cardinalToDegrees(slot.windDirection)} compact className="text-[#102b3a] dark:text-[#f4fbff]" />
+                  <p className="weather-data text-[0.62rem] leading-none text-[#102b3a] dark:text-[#f4fbff]">{slot.windDirection}</p>
+                </div>
+              </div>
+            );
+          })}
+        </ForecastMatrixRow>
+
+        {hasGust ? (
+          <ForecastMatrixRow label="Gust" columns={columns}>
+            {slots.map((slot) => (
+              <div key={`${slot.key}-gust`} className={`${cellBase} bg-[#fff7ef] dark:bg-[#261b12]`}>
+                <p className="weather-data text-xs leading-none text-[#c54824] dark:text-[#fb9270]">{slot.gust} kt</p>
+              </div>
+            ))}
+          </ForecastMatrixRow>
+        ) : null}
+
+        <ForecastMatrixRow label="Sea" columns={columns}>
+          {slots.map((slot) => {
+            const seaMeta = [slot.waveDirection, slot.period].filter((value) => value !== "-").join(" · ");
+            return (
+              <div key={`${slot.key}-wave`} className={`${cellBase} bg-[#e6f3fb] dark:bg-[#102f46]`}>
+                <p className="weather-data text-sm leading-none text-[#102b3a] dark:text-[#f4fbff]">{slot.wave === "-" ? "-" : `${slot.wave} ft`}</p>
+                <p className="mt-0.5 text-[0.52rem] font-semibold uppercase tracking-[0.05em] text-[#61747c] dark:text-[#b7cbd3]">{seaMeta || "-"}</p>
+              </div>
+            );
+          })}
+        </ForecastMatrixRow>
+
+        <ForecastMatrixRow label="Rain" columns={columns}>
+          {slots.map((slot) => (
+            <div key={`${slot.key}-rain`} className={`${cellBase} bg-[#ecf8f5] dark:bg-[#0e2f33]`}>
+              <p className="weather-data text-sm leading-none text-[#0b6f63] dark:text-[#5eead4]">{slot.rain}</p>
+            </div>
+          ))}
+        </ForecastMatrixRow>
       </div>
     </div>
   );
 }
 
-function ForecastEnergyCard({
-  groundswell,
-  observedGroundswell,
-  windSwell,
-  joined = false,
+function ForecastMatrixRow({
+  label,
+  columns,
+  children,
+  labelClassName,
 }: {
-  groundswell: ReturnType<typeof formatMarineForecastEnergy>;
-  observedGroundswell?: ReturnType<typeof formatSeaEnergy> | null;
-  windSwell: ReturnType<typeof formatMarineForecastEnergy>;
-  joined?: boolean;
+  label: string;
+  columns: string;
+  children: ReactNode;
+  labelClassName?: string;
 }) {
+  return (
+    <div className="grid" style={{ gridTemplateColumns: columns }}>
+      <div className={`flex min-h-[1.95rem] items-center px-2 py-1 text-[0.5rem] font-semibold uppercase tracking-[0.1em] text-[#61747c] dark:text-[#b7cbd3] ${labelClassName ?? "bg-[#f7fbfb] dark:bg-[#0b2230]"}`}>
+        {label}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function buildForecastMatrixSlots(
+  windows: ForecastWindow[],
+  days: ReturnType<typeof buildFiveDayForecast>,
+  snapshot: OceanConditionSnapshot,
+  region: ForecastRegion,
+): ForecastMatrixSlot[] {
+  const sampledWindows = buildForecastDaypartSlots(windows, days, snapshot, region);
+
+  if (sampledWindows.length) {
+    return sampledWindows;
+  }
+
+  return days.slice(0, 3).map((day, index) => {
+    const wind = parseWind(day.wind);
+    const observedGroundswell = index === 0
+      ? getObservedGroundswellForForecast(snapshot, region)
+      : null;
+    const energy = getForecastEnergyForRows(day.groundswell, observedGroundswell, day.bumpEnergy);
+    return {
+      key: day.day,
+      day: index === 0 ? `TODAY ${getForecastDateLabel(day.day, index)}` : getForecastCardLabel(day.day, index),
+      time: "DAY",
+      windDirection: wind.direction,
+      windSpeed: stripKt(wind.speed),
+      gust: wind.gust === "-" ? "-" : stripKt(wind.gust),
+      wave: energy?.height ?? "-",
+      period: energy?.period ?? "-",
+      waveDirection: energy?.direction ?? "-",
+      rain: day.rain,
+      tone: getWindToneFromText(wind.speed, wind.gust),
+    };
+  });
+}
+
+function getForecastEnergyForRows(
+  groundswell: ReturnType<typeof formatMarineForecastEnergy>,
+  observedGroundswell: ReturnType<typeof formatSeaEnergy> | null,
+  windSwell: ReturnType<typeof formatMarineForecastEnergy>,
+) {
   const energy = observedGroundswell ?? (groundswell.height !== "No data" ? groundswell : windSwell);
   if (energy.height === "No data") return null;
-  const label = observedGroundswell
-    ? "Observed Ground Swell"
-    : groundswell.height !== "No data"
-      ? "Ground Swell"
-      : "Forecast Wind Sea";
-  return (
-    <div className={joined ? "bg-[#eaf4fb] px-3 py-3.5 dark:bg-[#102f46]" : "rounded-xl border border-blue-900/12 bg-[#f4f8f9] p-3 dark:border-white/12 dark:bg-[#071d2a]"}>
-      <div>
-        <div>
-          <div className="flex items-center gap-1.5 text-[0.58rem] font-semibold uppercase tracking-[0.12em] text-[#61747c]">
-            <Waves className="size-3.5" />
-            {label}
-          </div>
-          <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <p className="weather-data text-xl leading-none text-[#102b3a] dark:text-[#f4fbff]">{energy.height}</p>
-            <p className="text-xs font-semibold text-[#61747c] dark:text-[#b7cbd3]">{energy.meta}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  const metaParts = energy.meta.split("·").map((part) => part.trim()).filter(Boolean);
+  return {
+    height: stripFeet(energy.height),
+    period: metaParts[0] ?? "-",
+    direction: metaParts.slice(1).join(" · ") || "-",
+  };
 }
 
-function ForecastRainCard({ rain, detail, joined = false }: { rain: string; detail: string; joined?: boolean }) {
-  return (
-    <div className={joined ? "bg-[#eff9f6] px-3 py-3.5 dark:bg-[#0e2f33]" : "rounded-xl border border-teal-900/12 bg-[#f4faf8] p-3 dark:border-white/12 dark:bg-[#071d2a]"}>
-      <div className="flex items-start gap-2">
-        <span className="inline-flex size-6 items-center justify-center rounded-full bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-100">
-          <CloudRain className="size-4" />
-        </span>
-        <div className="min-w-0">
-          <p className="text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#6b7d84]">
-            Showers
-          </p>
-          <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <p className="weather-data text-lg leading-none text-[#102b3a] dark:text-[#f4fbff]">{rain}</p>
-            <p className="line-clamp-2 text-xs font-normal leading-4 text-[#61747c] dark:text-[#b7cbd3]">{detail}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+function buildForecastDaypartSlots(
+  windows: ForecastWindow[],
+  days: ReturnType<typeof buildFiveDayForecast>,
+  snapshot: OceanConditionSnapshot,
+  region: ForecastRegion,
+) {
+  const targetHours = [6, 12, 18];
+  const grouped = new Map<string, ForecastWindow[]>();
+  for (const window of windows) {
+    const key = formatHawaiiDateKey(new Date(window.startTime));
+    grouped.set(key, [...(grouped.get(key) ?? []), window]);
+  }
+
+  return days.slice(0, 3).flatMap((day, dayIndex) => {
+    const weekday = getWeekdayToken(day.day.trim().replace(/\s+/g, " ").toUpperCase());
+    const date = getMarineForecastDate(weekday, dayIndex);
+    const dayKey = formatHawaiiDateKey(date);
+    const dayWindows = grouped.get(dayKey) ?? [];
+    const sorted = [...dayWindows].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+    const observedGroundswell = dayIndex === 0
+      ? getObservedGroundswellForForecast(snapshot, region)
+      : null;
+    const energy = getMatrixSlotEnergy(day, days, observedGroundswell, dayIndex);
+    const parsedWind = parseWind(day.wind);
+    const fallbackWindSpeed = stripKt(parsedWind.speed);
+    const fallbackGust = parsedWind.gust === "-" ? "-" : stripKt(parsedWind.gust);
+    const fallbackDirection = parsedWind.direction;
+
+    if (sorted.length) {
+      const picked = new Set<string>();
+      return targetHours.flatMap((targetHour) => {
+        const candidate = sorted
+          .filter((window) => !picked.has(window.startTime))
+          .map((window) => ({
+            window,
+            distance: Math.abs(getHawaiiHour(new Date(window.startTime)) - targetHour),
+          }))
+          .sort((a, b) => a.distance - b.distance)[0]?.window;
+        if (!candidate) return [];
+        picked.add(candidate.startTime);
+        const candidateDate = new Date(candidate.startTime);
+        const windSpeed = candidate.windSpeedKt !== null ? `${Math.round(candidate.windSpeedKt)}` : fallbackWindSpeed;
+        const gust = candidate.windGustKt !== null ? `${Math.round(candidate.windGustKt)}` : fallbackGust;
+        const windDirection = candidate.windDirectionCardinal ?? fallbackDirection;
+        return [{
+          key: candidate.startTime,
+          day: formatMatrixDayLabel(candidateDate),
+          time: formatMatrixHour(candidateDate),
+          windDirection,
+          windSpeed,
+          gust,
+          wave: energy?.height ?? "-",
+          period: energy?.period ?? "-",
+          waveDirection: energy?.direction ?? "-",
+          rain: candidate.precipitationChancePercent !== null && candidate.precipitationChancePercent !== undefined
+            ? `${candidate.precipitationChancePercent}%`
+            : day.rain,
+          tone: getWindToneFromText(`${windSpeed} kt`, gust !== "-" ? `${gust} kt` : undefined),
+        }];
+      });
+    }
+
+    return targetHours.map((targetHour) => ({
+      key: `${dayKey}-${targetHour}`,
+      day: formatMatrixDayLabel(date),
+      time: formatMatrixTargetHour(targetHour),
+      windDirection: fallbackDirection,
+      windSpeed: fallbackWindSpeed,
+      gust: fallbackGust,
+      wave: energy?.height ?? "-",
+      period: energy?.period ?? "-",
+      waveDirection: energy?.direction ?? "-",
+      rain: day.rain,
+      tone: getWindToneFromText(parsedWind.speed, parsedWind.gust),
+    }));
+  });
+}
+
+function getMatrixSlotEnergy(
+  day: ReturnType<typeof buildFiveDayForecast>[number] | undefined,
+  days: ReturnType<typeof buildFiveDayForecast>,
+  observedGroundswell: ReturnType<typeof formatSeaEnergy> | null,
+  fallbackIndex: number,
+) {
+  if (day) {
+    const energy = getForecastEnergyForRows(day.groundswell, observedGroundswell, day.bumpEnergy);
+    if (energy) return energy;
+  }
+  const fallbackDay = days
+    .slice(Math.max(0, fallbackIndex - 1))
+    .find((candidate) => candidate.groundswell.height !== "No data" || candidate.bumpEnergy.height !== "No data")
+    ?? days.find((candidate) => candidate.groundswell.height !== "No data" || candidate.bumpEnergy.height !== "No data");
+  return fallbackDay
+    ? getForecastEnergyForRows(fallbackDay.groundswell, observedGroundswell, fallbackDay.bumpEnergy)
+    : null;
+}
+
+function formatMatrixDayLabel(date: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: "Pacific/Honolulu",
+  }).format(date).replace(",", "").toUpperCase();
+}
+
+function formatMatrixHour(date: Date) {
+  const hour = getHawaiiHour(date);
+  return formatMatrixTargetHour(hour);
+}
+
+function formatMatrixTargetHour(hour: number) {
+  if (hour === 0) return "12a";
+  if (hour < 12) return `${hour}a`;
+  if (hour === 12) return "12p";
+  return `${hour - 12}p`;
+}
+
+function getHawaiiHour(date: Date) {
+  const hour = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    hour12: false,
+    timeZone: "Pacific/Honolulu",
+  }).format(date);
+  return Number(hour === "24" ? "0" : hour);
+}
+
+function formatHawaiiDateKey(date: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Pacific/Honolulu",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function stripKt(value: string) {
+  return value.replace(/\s*kt\b/i, "").trim();
+}
+
+function stripFeet(value: string) {
+  return value.replace(/\s*ft\b/i, "").trim();
+}
+
+function getForecastPowerClasses(tone: WindTone) {
+  const classes = {
+    light: {
+      label: "light",
+      background: "bg-[#f7fbf5] dark:bg-[#10251f]",
+      speedText: "text-[#188268] dark:text-[#5eead4]",
+      badge: "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/80 dark:bg-emerald-900/30 dark:text-emerald-100 dark:ring-emerald-300/20",
+    },
+    clean: {
+      label: "clean",
+      background: "bg-[#f4fbf8] dark:bg-[#102a24]",
+      speedText: "text-[#0d9684] dark:text-[#5eead4]",
+      badge: "bg-teal-50 text-teal-800 ring-1 ring-teal-200/80 dark:bg-teal-900/30 dark:text-teal-100 dark:ring-teal-300/20",
+    },
+    medium: {
+      label: "active",
+      background: "bg-[#fff7e8] dark:bg-[#312414]",
+      speedText: "text-[#c56a16] dark:text-[#fdba74]",
+      badge: "bg-amber-50 text-amber-900 ring-1 ring-amber-200/90 dark:bg-amber-900/30 dark:text-amber-100 dark:ring-amber-300/20",
+    },
+    strong: {
+      label: "strong",
+      background: "bg-[#fff1eb] dark:bg-[#341b14]",
+      speedText: "text-[#c54824] dark:text-[#fb9270]",
+      badge: "bg-orange-50 text-orange-900 ring-1 ring-orange-200/90 dark:bg-orange-900/30 dark:text-orange-100 dark:ring-orange-300/20",
+    },
+    wild: {
+      label: "wild",
+      background: "bg-[#f7eef8] dark:bg-[#281628]",
+      speedText: "text-[#9d2f7c] dark:text-[#f0abfc]",
+      badge: "bg-fuchsia-50 text-fuchsia-900 ring-1 ring-fuchsia-200/90 dark:bg-fuchsia-900/30 dark:text-fuchsia-100 dark:ring-fuchsia-300/20",
+    },
+  } satisfies Record<WindTone, { label: string; background: string; speedText: string; badge: string }>;
+  return classes[tone];
 }
 
 type LiveDataListItem = {
@@ -1610,11 +1712,15 @@ function SourceFreshnessBadge({
   source: SourceLike;
   compact?: boolean;
 }) {
+  const ageMinutes = getSourceAgeMinutes(source);
+  const inactive = source.status === "live" && ageMinutes !== null && ageMinutes > 60 * 24 * 3;
   const freshness =
-    source.status === "mock"
+    inactive
+      ? "inactive"
+      : source.status === "mock"
       ? "model"
-      : source.freshnessMinutes !== undefined
-      ? `${source.freshnessMinutes} min`
+      : ageMinutes !== null
+      ? `${ageMinutes} min`
       : source.observedAt
         ? formatTime(source.observedAt)
         : source.fetchedAt
@@ -1622,7 +1728,9 @@ function SourceFreshnessBadge({
           : "updated";
   const station = getSourceDisplayName(source);
   const statusLabel =
-    source.status === "live"
+    inactive
+      ? "source inactive"
+      : source.status === "live"
       ? `Live · ${freshness}`
       : source.source.includes("MFM forecast")
         ? `Model · ${freshness}`
@@ -1638,10 +1746,12 @@ function SourceFreshnessBadge({
           ? "NOAA prediction"
           : "Model";
   const label = `${station} · ${statusLabel}`;
-  const className = `inline-flex w-fit max-w-full items-center gap-1 justify-self-start rounded-full border border-[#cbd9dd]/60 bg-white/42 ${compact ? "px-1.5 py-0.5 text-[0.52rem]" : "px-2 py-0.5 text-[0.58rem]"} font-medium uppercase tracking-[0.07em] text-[#5f7078] dark:border-white/10 dark:bg-[#102a3a]/54 dark:text-[#a9c0c8]`;
+  const className = inactive
+    ? `inline-flex w-fit max-w-full items-center gap-1 justify-self-start rounded-full border border-red-500/45 bg-red-50 ${compact ? "px-1.5 py-0.5 text-[0.52rem]" : "px-2 py-0.5 text-[0.58rem]"} font-semibold uppercase tracking-[0.07em] text-red-800 shadow-[0_0_0_1px_rgba(220,38,38,0.06)] dark:border-red-300/45 dark:bg-red-950/35 dark:text-red-100`
+    : `inline-flex w-fit max-w-full items-center gap-1 justify-self-start rounded-full border border-[#cbd9dd]/60 bg-white/42 ${compact ? "px-1.5 py-0.5 text-[0.52rem]" : "px-2 py-0.5 text-[0.58rem]"} font-medium uppercase tracking-[0.07em] text-[#5f7078] dark:border-white/10 dark:bg-[#102a3a]/54 dark:text-[#a9c0c8]`;
   const content = (
     <>
-      <span className={`${compact ? "size-1" : "size-1.5"} rounded-full ${source.status === "live" ? "live-pulse bg-emerald-500 dark:bg-emerald-400" : source.status === "mock" || source.status === "stale" ? "bg-amber-500" : "bg-red-500 dark:bg-red-400"}`} />
+      <span className={`${compact ? "size-1" : "size-1.5"} rounded-full ${inactive ? "bg-red-600 dark:bg-red-300" : source.status === "live" ? "live-pulse bg-emerald-500 dark:bg-emerald-400" : source.status === "mock" || source.status === "stale" ? "bg-amber-500" : "bg-red-500 dark:bg-red-400"}`} />
       <span className="min-w-0 truncate">
         {label}
       </span>
@@ -1654,6 +1764,14 @@ function SourceFreshnessBadge({
   ) : (
     <span className={className}>{content}</span>
   );
+}
+
+function getSourceAgeMinutes(source: SourceLike) {
+  if (source.freshnessMinutes !== undefined) return source.freshnessMinutes;
+  const timestamp = source.observedAt ?? source.fetchedAt;
+  if (!timestamp) return null;
+  const age = Math.round((Date.now() - new Date(timestamp).getTime()) / 60000);
+  return Number.isFinite(age) ? Math.max(0, age) : null;
 }
 
 function getCompactSourceName(source: string) {
