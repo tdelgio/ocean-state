@@ -800,7 +800,7 @@ function getForecastEnergyForRows(
   return {
     height: stripFeet(energy.height),
     period: metaParts[0] ?? "-",
-    direction: metaParts.slice(1).join(" · ") || "-",
+    direction: getCardinalDirectionFromMeta(metaParts.slice(1).join(" · ")) ?? "-",
   };
 }
 
@@ -1681,7 +1681,7 @@ function ActiveMarineAlerts({ alerts }: { alerts: OceanConditionSnapshot["alerts
 function getUniqueMarineAlerts(alerts: OceanConditionSnapshot["alerts"]) {
   const seen = new Set<string>();
   return alerts.filter((alert) => {
-    const key = normalizeAlertKey(alert.event || alert.headline);
+    const key = normalizeAlertKey(getFriendlyAlertLabel(alert));
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -2877,6 +2877,14 @@ function cardinalToDegrees(direction: string) {
 
 function isKnownCardinalDirection(direction: string) {
   return /^(N|NNE|NE|ENE|E|ESE|SE|SSE|S|SSW|SW|WSW|W|WNW|NW|NNW)$/.test(direction);
+}
+
+function getCardinalDirectionFromMeta(value: string) {
+  return value
+    .split("·")
+    .map((part) => part.trim())
+    .find(isKnownCardinalDirection)
+    ?? null;
 }
 
 type ShoreConfig = {

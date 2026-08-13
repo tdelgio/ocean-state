@@ -34,9 +34,9 @@ export function TopNavigation({
             href={item.href}
             prefetch={false}
             className={cn(
-              "shrink-0 border-b-2 px-0.5 pb-2.5 text-[0.68rem] font-medium uppercase tracking-[0.11em] transition sm:px-2 sm:text-[0.72rem]",
+              "shrink-0 border-b-2 px-2 pb-2.5 pt-1 text-[0.68rem] font-medium uppercase tracking-[0.11em] transition sm:px-3 sm:text-[0.72rem]",
               active === item.href
-                ? "border-[#0d9684] text-[#102b3a] dark:border-[#17d3b2] dark:text-white"
+                ? "border-[#0d9684] text-[#102b3a] dark:border-[#5eead4] dark:bg-[#12313a] dark:text-[#eaffff] dark:shadow-[inset_0_-1px_0_rgba(94,234,212,0.25)]"
                 : "border-transparent text-[#657981] hover:text-[#102b3a] dark:text-[#9fb4bc] dark:hover:text-white",
             )}
           >
