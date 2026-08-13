@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ocean/theme-toggle";
 
 const navItems = [
-  { href: "/home", label: "Live Ocean", description: "Right now", icon: Home },
+  { href: "/home", label: "Live", description: "Right now", icon: Home },
   { href: "/forecast", label: "Forecast", description: "Models", icon: CalendarDays },
   { href: "/channels", label: "Channels", description: "Inter-island", icon: Ship },
   { href: "/harbors", label: "Harbors", description: "Launches", icon: Anchor },

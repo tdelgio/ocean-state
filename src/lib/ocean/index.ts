@@ -8,11 +8,13 @@ import { getNdbcObservations } from "./ndbc";
 import { getNwsAlerts, getNwsForecastWindows } from "./nws";
 import { getPacioosSurfaceCurrent } from "./pacioos";
 import { scoreRoute } from "./scoring";
+import { getNoaaSurfOutlook } from "./surf";
 import type { ForecastRegionId, MauiShoreId, OceanConditionSnapshot, OceanIntelligenceResult, OffshoreBuoyId, OffshoreBuoyObservation, RouteConfig, ShoreOceanObservations } from "./types";
 
 export type {
   ForecastWindow,
   MarineForecastDay,
+  SurfOutlook,
   OceanConditionSnapshot,
   OceanIntelligenceResult,
   RouteConfig,
@@ -107,7 +109,7 @@ function hasUnusableTide(snapshot: OceanConditionSnapshot) {
 
 async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanConditionSnapshot> {
   try {
-    const [buoy, southBuoy, openOceanNwBuoy, northernHawaiiBuoy, southwestHawaiiBuoy, southeastHawaiiBuoy, ddFadForecastWind, tide, southTide, westTide, current, northSurfaceCurrent, southCurrent, westCurrent, pailoloCurrent, kaiwiCurrent, alenuihahaCurrent, coastalWinds, harborWinds, forecastWindows, southForecastWindows, eastForecastWindows, westForecastWindows, marineForecastDays, channelForecasts, alerts] = await Promise.all([
+    const [buoy, southBuoy, openOceanNwBuoy, northernHawaiiBuoy, southwestHawaiiBuoy, southeastHawaiiBuoy, ddFadForecastWind, tide, southTide, westTide, current, northSurfaceCurrent, southCurrent, westCurrent, pailoloCurrent, kaiwiCurrent, alenuihahaCurrent, coastalWinds, harborWinds, forecastWindows, southForecastWindows, eastForecastWindows, westForecastWindows, marineForecastDays, surfOutlook, channelForecasts, alerts] = await Promise.all([
       getNdbcObservations(route.stations.primaryBuoyId),
       getNdbcObservations("51213"),
       getNdbcObservations("51001"),
@@ -132,6 +134,7 @@ async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanCond
       getNwsForecastWindows({ latitude: 20.759, longitude: -155.988 }),
       getNwsForecastWindows({ latitude: 20.872, longitude: -156.678 }),
       getMauiMarineForecastDays(),
+      getNoaaSurfOutlook(),
       getChannelForecastObservations(),
       getNwsAlerts(route.stations.nwsPoint),
     ]);
@@ -212,6 +215,7 @@ async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanCond
         west: westForecastWindows,
       } satisfies Record<ForecastRegionId, typeof forecastWindows>,
       marineForecastDays,
+      surfOutlook,
       channelForecasts,
       channelCurrents: {
         pailolo: pailoloCurrent,
@@ -255,6 +259,8 @@ async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanCond
         ...southForecastWindows.map((window) => window.source),
         ...eastForecastWindows.map((window) => window.source),
         ...westForecastWindows.map((window) => window.source),
+        ...(surfOutlook ? [surfOutlook.source] : []),
+        ...(surfOutlook?.spotSource ? [surfOutlook.spotSource] : []),
         ...Object.values(channelForecasts).map((channel) => channel.wind.source),
         ...alerts.map((alert) => alert.source),
       ],

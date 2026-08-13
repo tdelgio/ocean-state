@@ -501,6 +501,7 @@ export function createMockOceanSnapshot(route: RouteConfig = malikoNorthShoreRou
       windward: mockMarineForecastDays,
       leeward: mockMarineForecastDays,
     },
+    surfOutlook: null,
     channelForecasts: {
       pailolo: createMockChannelForecast("pailolo", "Pailolo"),
       kaiwi: createMockChannelForecast("kaiwi", "Kaiwi"),
