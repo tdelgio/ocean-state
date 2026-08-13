@@ -8,6 +8,7 @@ import {
   ExternalLink,
   Info,
   Navigation,
+  ShieldAlert,
   Ship,
   Waves,
 } from "lucide-react";
@@ -31,6 +32,7 @@ type Channel = "pailolo" | "kaiwi" | "alenuihaha" | "offshore-waters";
 type InterIslandChannel = Exclude<Channel, "offshore-waters">;
 type Harbor = "kahului-harbor" | "maalaea-harbor" | "lahaina-harbor";
 type WindTone = "light" | "clean" | "medium" | "strong" | "wild";
+type SurfSpot = NonNullable<OceanConditionSnapshot["surfOutlook"]>["spots"][number];
 type SourceLike = {
   source: string;
   status: string;
@@ -170,6 +172,8 @@ export function HomeForecastOverview({
         ))}
       </div>
 
+      <ForecastAlertBanner alerts={snapshot.alerts} />
+
       {liveRunPoints.length >= 2 ? (
         <RunWindCard
           shore={selectedShore}
@@ -193,7 +197,7 @@ export function HomeForecastOverview({
         </div>
         <div className={`grid gap-4 ${hasLiveWind ? "lg:grid-cols-[1.1fr_0.9fr]" : ""}`}>
           {hasLiveWind ? <LiveWindCard wind={wind} source={shoreOcean.wind.source} /> : null}
-          <LiveSeaInlineCard shoreOcean={shoreOcean} />
+          <LiveSeaInlineCard shoreOcean={shoreOcean} snapshot={snapshot} />
         </div>
         <div className={`mt-4 grid gap-4 ${hasCurrent ? "lg:grid-cols-2" : ""}`}>
           {hasCurrent ? <CurrentCard current={current} /> : null}
@@ -233,12 +237,156 @@ export function ExtendedForecastOverview({
             fullWidth
           />
         </div>
+        <ForecastAlertBanner alerts={snapshot.alerts} />
         <div className="mt-4">
           <ModelTimeline snapshot={snapshot} region={selectedRegion} />
         </div>
+        <SurfReportSummary snapshot={snapshot} selectedRegion={selectedRegion} />
       </section>
     </div>
   );
+}
+
+function ForecastAlertBanner({ alerts }: { alerts: OceanConditionSnapshot["alerts"] }) {
+  const uniqueAlerts = getUniqueMarineAlerts(alerts);
+  if (!uniqueAlerts.length) return null;
+
+  const risk = getWeatherRiskSummary(uniqueAlerts);
+  const headlineAlerts = uniqueAlerts.slice(0, 3);
+
+  return (
+    <div className="mt-3 rounded-[1.1rem] border border-orange-700/18 bg-gradient-to-br from-orange-50/95 via-[#fff8ee]/92 to-white/82 px-3.5 py-3 text-[#7c2d12] shadow-[0_10px_24px_rgba(124,45,18,0.06)] dark:border-orange-300/20 dark:from-orange-950/28 dark:via-[#2b1d14]/60 dark:to-[#102a3a]/70 dark:text-orange-100">
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-orange-100 text-orange-800 ring-1 ring-orange-200/80 dark:bg-orange-900/40 dark:text-orange-100 dark:ring-orange-300/20">
+          {risk.tone === "storm" ? <ShieldAlert className="size-4" /> : <AlertTriangle className="size-4" />}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[0.62rem] font-semibold uppercase tracking-[0.13em]">
+              Weather risk
+            </p>
+            <span className="rounded-full bg-white/70 px-2 py-0.5 text-[0.56rem] font-semibold uppercase tracking-[0.1em] ring-1 ring-orange-700/14 dark:bg-white/8 dark:ring-orange-200/18">
+              {risk.label}
+            </span>
+          </div>
+          <p className="mt-1 text-sm font-semibold leading-5">
+            {risk.summary}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {headlineAlerts.map((alert) => (
+              <span key={alert.id} className="rounded-full bg-white/72 px-2.5 py-1 text-xs font-semibold leading-none ring-1 ring-orange-700/12 dark:bg-white/8 dark:ring-orange-200/16">
+                {getFriendlyAlertLabel(alert)}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SurfReportSummary({
+  snapshot,
+  selectedRegion,
+}: {
+  snapshot: OceanConditionSnapshot;
+  selectedRegion: ForecastRegion;
+}) {
+  const surfOutlook = snapshot.surfOutlook;
+  if (!surfOutlook) return null;
+
+  const shore = surfOutlook.shores[selectedRegion];
+  const spots = buildSurfReportSpotList(surfOutlook.spots, selectedRegion, shore?.surf);
+  const sourceUrl = surfOutlook.source.sourceUrl ?? surfOutlook.spotSource?.sourceUrl;
+  const briefing = summarizeSurfBriefing(surfOutlook.spotBriefing ?? surfOutlook.briefing);
+
+  return (
+    <section className="mt-3 rounded-[1.1rem] border border-[#094c60]/10 bg-[#f6fbfb]/82 px-3.5 py-3 shadow-[0_10px_24px_rgba(7,35,45,0.035)] dark:border-white/10 dark:bg-white/5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="flex items-center gap-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.13em] text-[#536b73] dark:text-[#b7cbd3]">
+            <Waves className="size-3.5 text-[#0d9684] dark:text-[#5eead4]" />
+            Surf report
+          </p>
+          <p className="mt-1 text-sm font-semibold leading-5 text-[#102b3a] dark:text-[#e9f8fb]">
+            {briefing ?? shore?.summary ?? "Surf guidance is available from the latest Maui surf report."}
+          </p>
+        </div>
+        {shore?.surf ? (
+          <div className="shrink-0 rounded-xl bg-white/72 px-3 py-2 text-[#102b3a] ring-1 ring-[#d8dedf]/70 dark:bg-white/8 dark:text-[#f4fbff] dark:ring-white/10">
+            <p className="text-[0.56rem] font-semibold uppercase tracking-[0.12em] text-[#61747c] dark:text-[#b7cbd3]">
+              {shore.label}
+            </p>
+            <p className="weather-data mt-1 text-lg leading-none">{shore.surf}</p>
+          </div>
+        ) : null}
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        {spots.map((spot) => (
+          <span key={spot.id} className="inline-flex items-center gap-1 rounded-full bg-white/75 px-2.5 py-1 text-xs font-semibold text-[#536b73] ring-1 ring-[#d8dedf]/70 dark:bg-white/8 dark:text-[#b7cbd3] dark:ring-white/10">
+            <Waves className="size-3" />
+            {spot.name} {spot.surf}
+          </span>
+        ))}
+        {sourceUrl ? (
+          <a
+            href={sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 rounded-full bg-white/75 px-2.5 py-1 text-xs font-semibold text-[#0d5968] ring-1 ring-[#d8dedf]/70 transition hover:bg-white dark:bg-white/8 dark:text-[#9debf9] dark:ring-white/10"
+          >
+            NOAA source
+            <ExternalLink className="size-3" />
+          </a>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function buildSurfReportSpotList(
+  spots: SurfSpot[],
+  selectedRegion: ForecastRegion,
+  shoreSurf?: string | null,
+) {
+  const regionSpots = spots.filter((spot) => spot.region === selectedRegion);
+  const preferredNames: Partial<Record<ForecastRegion, string[]>> = {
+    north: ["Hookipa", "Paia", "Kanaha", "Mejana"],
+    south: ["Kihei", "Wailea", "Maalaea"],
+    east: ["Hana"],
+    west: ["Lahaina", "Upper West"],
+  };
+  const preferred = preferredNames[selectedRegion] ?? [];
+  const ordered = [
+    ...preferred.flatMap((name) =>
+      regionSpots.filter((spot) => normalizeSpotName(spot.name).includes(normalizeSpotName(name))),
+    ),
+    ...regionSpots,
+  ];
+  const unique = dedupeSurfSpots(ordered).slice(0, 4);
+  if (selectedRegion === "north" && !unique.some((spot) => normalizeSpotName(spot.name).includes("mejana"))) {
+    unique.push({
+      id: "mejana",
+      name: "Mejana",
+      region: "north",
+      surf: shoreSurf ?? "Report",
+    });
+  }
+  return unique.slice(0, 4);
+}
+
+function dedupeSurfSpots(spots: SurfSpot[]) {
+  const seen = new Set<string>();
+  return spots.filter((spot) => {
+    const key = normalizeSpotName(spot.name);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function normalizeSpotName(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
 }
 
 function ShoresMode({
@@ -392,13 +540,19 @@ function ModelTimeline({
     snapshot.marineForecastDays[zone],
   );
   const slots = buildForecastMatrixSlots(windows, days, snapshot, region);
+  const forecastSource = getForecastTimelineSource(windows);
 
   return (
     <section className="overflow-hidden">
-      <div className="mb-2 flex items-center justify-between px-1">
-        <span className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#70868e] dark:text-[#9fb4bc]">
-          3 day outlook
-        </span>
+      <div className="mb-2 flex flex-wrap items-end justify-between gap-2 px-1">
+        <div>
+          <span className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#70868e] dark:text-[#9fb4bc]">
+            4 day outlook
+          </span>
+          {forecastSource ? (
+            <ForecastSourceLink source={forecastSource} />
+          ) : null}
+        </div>
         <span className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#70868e] dark:text-[#9fb4bc]">
           6a · 12p · 6p
         </span>
@@ -408,9 +562,30 @@ function ModelTimeline({
   );
 }
 
+function ForecastSourceLink({ source }: { source: SourceLike }) {
+  const label = `Source: ${getSourceDisplayName(source)}`;
+  return source.sourceUrl ? (
+    <a
+      href={source.sourceUrl}
+      target="_blank"
+      rel="noreferrer"
+      className="mt-1 inline-flex items-center gap-1 text-[0.62rem] font-semibold text-[#61747c] transition hover:text-[#0d5968] dark:text-[#b7cbd3] dark:hover:text-[#9debf9]"
+    >
+      {label}
+      <ExternalLink className="size-3" />
+    </a>
+  ) : (
+    <p className="mt-1 text-[0.62rem] font-semibold text-[#61747c] dark:text-[#b7cbd3]">
+      {label}
+    </p>
+  );
+}
+
 type ForecastMatrixSlot = {
   key: string;
   day: string;
+  isDayStart: boolean;
+  dayTone: number;
   time: string;
   windDirection: string;
   windSpeed: string;
@@ -423,20 +598,23 @@ type ForecastMatrixSlot = {
 };
 
 function ForecastMatrix({ slots }: { slots: ForecastMatrixSlot[] }) {
-  const columns = `3.65rem repeat(${slots.length}, minmax(3.2rem, 1fr))`;
-  const cellBase = "min-h-[2.25rem] px-1.5 py-1 text-center";
+  const columns = `3.55rem repeat(${slots.length}, minmax(3.35rem, 1fr))`;
+  const cellBase = "flex min-h-[2.2rem] flex-col items-center justify-center px-1.5 py-1 text-center";
   const hasGust = slots.some((slot) => slot.gust !== "-");
   return (
     <div className="-mx-3 overflow-x-auto px-3 pb-3 sm:-mx-5 sm:px-5">
       <div
-        className="min-w-[32.5rem] overflow-hidden rounded-[0.95rem] bg-white shadow-[0_10px_24px_rgba(7,35,45,0.04)] ring-1 ring-[#d8dedf]/65 dark:bg-[#102a3a] dark:ring-white/10"
+        className="min-w-[43.5rem] overflow-hidden rounded-[0.95rem] bg-white shadow-[0_10px_24px_rgba(7,35,45,0.04)] ring-1 ring-[#d8dedf]/65 dark:bg-[#102a3a] dark:ring-white/10"
         style={{ gridTemplateColumns: columns }}
       >
         <ForecastMatrixRow label="Date" columns={columns} labelClassName="bg-white dark:bg-[#102a3a]">
-          {slots.map((slot, index) => (
-            <div key={`${slot.key}-day`} className={`${cellBase} min-h-[2rem] bg-white dark:bg-[#102a3a]`}>
-              <p className="text-[0.5rem] font-semibold uppercase tracking-[0.08em] text-[#102b3a] dark:text-[#f4fbff]">
-                {index === 0 || slot.day !== slots[index - 1]?.day ? slot.day : ""}
+          {slots.map((slot) => (
+            <div
+              key={`${slot.key}-day`}
+              className={`${cellBase} min-h-[2rem] ${getDayBandClasses(slot, "date")}`}
+            >
+              <p className="text-[0.54rem] font-semibold uppercase tracking-[0.08em] text-[#102b3a] dark:text-[#f4fbff]">
+                {slot.isDayStart ? slot.day : ""}
               </p>
             </div>
           ))}
@@ -444,19 +622,19 @@ function ForecastMatrix({ slots }: { slots: ForecastMatrixSlot[] }) {
 
         <ForecastMatrixRow label="Hour" columns={columns}>
           {slots.map((slot) => (
-            <div key={`${slot.key}-time`} className={`${cellBase} min-h-[1.95rem] bg-[#f7f5ef] dark:bg-[#071d2a]`}>
+            <div key={`${slot.key}-time`} className={`${cellBase} min-h-[1.95rem] ${getDayBandClasses(slot, "hour")}`}>
               <p className="weather-data text-xs leading-none text-[#102b3a] dark:text-[#f4fbff]">{slot.time}</p>
             </div>
           ))}
         </ForecastMatrixRow>
 
-        <ForecastMatrixRow label="Wind" columns={columns}>
+        <ForecastMatrixRow label="Wind" columns={columns} icon={Navigation}>
           {slots.map((slot) => {
             const power = getForecastPowerClasses(slot.tone);
             return (
-              <div key={`${slot.key}-wind`} className={`${cellBase} ${power.background}`}>
-                <p className={`weather-data text-[0.9rem] leading-none ${power.speedText}`}>{slot.windSpeed} kt</p>
-                <div className="mt-0.5 flex items-center justify-center gap-0.5">
+              <div key={`${slot.key}-wind`} className={`${cellBase} ${power.background} ${slot.isDayStart ? "border-l border-[#c8b799] dark:border-white/18" : "border-l border-[#f0dfc2]/50 dark:border-white/6"}`}>
+                <p className={`weather-data text-[0.78rem] leading-tight ${power.speedText}`}>{slot.windSpeed} kt</p>
+                <div className="mt-1 flex items-center justify-center gap-1">
                   <WindArrow degrees={cardinalToDegrees(slot.windDirection)} compact className="text-[#102b3a] dark:text-[#f4fbff]" />
                   <p className="weather-data text-[0.62rem] leading-none text-[#102b3a] dark:text-[#f4fbff]">{slot.windDirection}</p>
                 </div>
@@ -466,30 +644,37 @@ function ForecastMatrix({ slots }: { slots: ForecastMatrixSlot[] }) {
         </ForecastMatrixRow>
 
         {hasGust ? (
-          <ForecastMatrixRow label="Gust" columns={columns}>
+          <ForecastMatrixRow label="Gust" columns={columns} icon={Compass}>
             {slots.map((slot) => (
-              <div key={`${slot.key}-gust`} className={`${cellBase} bg-[#fff7ef] dark:bg-[#261b12]`}>
+              <div key={`${slot.key}-gust`} className={`${cellBase} bg-[#fff7ef] dark:bg-[#261b12] ${slot.isDayStart ? "border-l border-[#e8c7a4] dark:border-white/18" : "border-l border-[#f4e5d5]/60 dark:border-white/6"}`}>
                 <p className="weather-data text-xs leading-none text-[#c54824] dark:text-[#fb9270]">{slot.gust} kt</p>
               </div>
             ))}
           </ForecastMatrixRow>
         ) : null}
 
-        <ForecastMatrixRow label="Sea" columns={columns}>
+        <ForecastMatrixRow label="Sea" columns={columns} icon={Waves}>
           {slots.map((slot) => {
-            const seaMeta = [slot.waveDirection, slot.period].filter((value) => value !== "-").join(" · ");
+            const hasWaveDirection = isKnownCardinalDirection(slot.waveDirection);
             return (
-              <div key={`${slot.key}-wave`} className={`${cellBase} bg-[#e6f3fb] dark:bg-[#102f46]`}>
+              <div key={`${slot.key}-wave`} className={`${cellBase} bg-[#e6f3fb] dark:bg-[#102f46] ${slot.isDayStart ? "border-l border-[#b8d5e5] dark:border-white/18" : "border-l border-[#d6eaf3]/70 dark:border-white/6"}`}>
                 <p className="weather-data text-sm leading-none text-[#102b3a] dark:text-[#f4fbff]">{slot.wave === "-" ? "-" : `${slot.wave} ft`}</p>
-                <p className="mt-0.5 text-[0.52rem] font-semibold uppercase tracking-[0.05em] text-[#61747c] dark:text-[#b7cbd3]">{seaMeta || "-"}</p>
+                <div className="mt-1 flex items-center justify-center gap-1 text-[#61747c] dark:text-[#b7cbd3]">
+                  {hasWaveDirection ? (
+                    <WindArrow degrees={cardinalToDegrees(slot.waveDirection)} mini className="text-[#61747c] dark:text-[#b7cbd3]" />
+                  ) : null}
+                  <p className="text-[0.52rem] font-semibold uppercase tracking-[0.05em]">
+                    {[slot.waveDirection, slot.period].filter((value) => value !== "-").join(" · ") || "-"}
+                  </p>
+                </div>
               </div>
             );
           })}
         </ForecastMatrixRow>
 
-        <ForecastMatrixRow label="Rain" columns={columns}>
+        <ForecastMatrixRow label="Rain" columns={columns} icon={CloudRain}>
           {slots.map((slot) => (
-            <div key={`${slot.key}-rain`} className={`${cellBase} bg-[#ecf8f5] dark:bg-[#0e2f33]`}>
+            <div key={`${slot.key}-rain`} className={`${cellBase} bg-[#ecf8f5] dark:bg-[#0e2f33] ${slot.isDayStart ? "border-l border-[#bde4dd] dark:border-white/18" : "border-l border-[#d9f0ec]/70 dark:border-white/6"}`}>
               <p className="weather-data text-sm leading-none text-[#0b6f63] dark:text-[#5eead4]">{slot.rain}</p>
             </div>
           ))}
@@ -499,20 +684,46 @@ function ForecastMatrix({ slots }: { slots: ForecastMatrixSlot[] }) {
   );
 }
 
+function getDayBandClasses(slot: ForecastMatrixSlot, row: "date" | "hour") {
+  const palette = [
+    {
+      date: "bg-[#f9fcfb] dark:bg-[#102a3a]",
+      hour: "bg-[#f5fbfa] dark:bg-[#0d2534]",
+    },
+    {
+      date: "bg-[#eef8f7] dark:bg-[#0f3038]",
+      hour: "bg-[#e9f5f5] dark:bg-[#0b2b34]",
+    },
+    {
+      date: "bg-[#f3f8fb] dark:bg-[#102d42]",
+      hour: "bg-[#edf6fa] dark:bg-[#0d293b]",
+    },
+    {
+      date: "bg-[#f7faf3] dark:bg-[#172d2b]",
+      hour: "bg-[#f1f8f0] dark:bg-[#122c2d]",
+    },
+  ];
+  const tone = palette[slot.dayTone % palette.length] ?? palette[0];
+  return `${tone[row]} ${slot.isDayStart ? "border-l border-[#b9cace] dark:border-white/18" : "border-l border-transparent"}`;
+}
+
 function ForecastMatrixRow({
   label,
   columns,
   children,
   labelClassName,
+  icon: Icon,
 }: {
   label: string;
   columns: string;
   children: ReactNode;
   labelClassName?: string;
+  icon?: ElementType;
 }) {
   return (
     <div className="grid" style={{ gridTemplateColumns: columns }}>
-      <div className={`flex min-h-[1.95rem] items-center px-2 py-1 text-[0.5rem] font-semibold uppercase tracking-[0.1em] text-[#61747c] dark:text-[#b7cbd3] ${labelClassName ?? "bg-[#f7fbfb] dark:bg-[#0b2230]"}`}>
+      <div className={`flex min-h-[1.95rem] items-center gap-1 px-2 py-1 text-[0.5rem] font-semibold uppercase tracking-[0.1em] text-[#61747c] dark:text-[#b7cbd3] ${labelClassName ?? "bg-[#f7fbfb] dark:bg-[#0b2230]"}`}>
+        {Icon ? <Icon className="size-3 shrink-0" /> : null}
         {label}
       </div>
       {children}
@@ -532,7 +743,7 @@ function buildForecastMatrixSlots(
     return sampledWindows;
   }
 
-  return days.slice(0, 3).map((day, index) => {
+  return days.slice(0, 4).map((day, index) => {
     const wind = parseWind(day.wind);
     const observedGroundswell = index === 0
       ? getObservedGroundswellForForecast(snapshot, region)
@@ -541,6 +752,8 @@ function buildForecastMatrixSlots(
     return {
       key: day.day,
       day: index === 0 ? `TODAY ${getForecastDateLabel(day.day, index)}` : getForecastCardLabel(day.day, index),
+      isDayStart: true,
+      dayTone: index,
       time: "DAY",
       windDirection: wind.direction,
       windSpeed: stripKt(wind.speed),
@@ -582,7 +795,7 @@ function buildForecastDaypartSlots(
     grouped.set(key, [...(grouped.get(key) ?? []), window]);
   }
 
-  return days.slice(0, 3).flatMap((day, dayIndex) => {
+  return days.slice(0, 4).flatMap((day, dayIndex) => {
     const weekday = getWeekdayToken(day.day.trim().replace(/\s+/g, " ").toUpperCase());
     const date = getMarineForecastDate(weekday, dayIndex);
     const dayKey = formatHawaiiDateKey(date);
@@ -616,6 +829,7 @@ function buildForecastDaypartSlots(
         return [{
           key: candidate.startTime,
           day: formatMatrixDayLabel(candidateDate),
+          isDayStart: false,
           time: formatMatrixHour(candidateDate),
           windDirection,
           windSpeed,
@@ -628,12 +842,14 @@ function buildForecastDaypartSlots(
             : day.rain,
           tone: getWindToneFromText(`${windSpeed} kt`, gust !== "-" ? `${gust} kt` : undefined),
         }];
-      });
+      }).map((slot, index) => ({ ...slot, isDayStart: index === 0, dayTone: dayIndex }));
     }
 
     return targetHours.map((targetHour) => ({
       key: `${dayKey}-${targetHour}`,
       day: formatMatrixDayLabel(date),
+      isDayStart: false,
+      dayTone: dayIndex,
       time: formatMatrixTargetHour(targetHour),
       windDirection: fallbackDirection,
       windSpeed: fallbackWindSpeed,
@@ -643,8 +859,16 @@ function buildForecastDaypartSlots(
       waveDirection: energy?.direction ?? "-",
       rain: day.rain,
       tone: getWindToneFromText(parsedWind.speed, parsedWind.gust),
-    }));
+    })).map((slot, index) => ({ ...slot, isDayStart: index === 0 }));
   });
+}
+
+function getForecastTimelineSource(
+  windows: ForecastWindow[],
+): SourceLike | null {
+  return windows.find((window) => window.source.sourceUrl)?.source
+    ?? windows[0]?.source
+    ?? null;
 }
 
 function getMatrixSlotEnergy(
@@ -960,8 +1184,8 @@ function ChannelWindsSection({
 
 function OffshoreWatersSection({ snapshot }: { snapshot: OceanConditionSnapshot }) {
   const stations = [
-    snapshot.offshoreObservations["open-ocean-nw"],
     snapshot.offshoreObservations["northern-hawaii"],
+    snapshot.offshoreObservations["open-ocean-nw"],
     snapshot.offshoreObservations["southeast-hawaii"],
     snapshot.offshoreObservations["southwest-hawaii"],
   ].filter(hasUsefulOffshoreData);
@@ -973,8 +1197,8 @@ function OffshoreWatersSection({ snapshot }: { snapshot: OceanConditionSnapshot 
       </div>
       <div className="flex snap-x gap-3 overflow-x-auto pb-2 lg:grid lg:grid-cols-2 lg:overflow-visible">
         {stations.map((buoy) => (
-          <div key={buoy.id} className="w-[min(88vw,24rem)] shrink-0 snap-start lg:w-auto">
-            <OffshoreBuoyCard buoy={buoy} />
+          <div key={buoy.id} className="w-[min(88vw,23rem)] shrink-0 snap-start lg:w-auto">
+            <OffshoreBuoyCard buoy={buoy} snapshot={snapshot} />
           </div>
         ))}
       </div>
@@ -982,35 +1206,64 @@ function OffshoreWatersSection({ snapshot }: { snapshot: OceanConditionSnapshot 
   );
 }
 
-function OffshoreBuoyCard({ buoy }: { buoy: OceanConditionSnapshot["offshoreObservations"][keyof OceanConditionSnapshot["offshoreObservations"]] }) {
-  const groundswell = formatSeaEnergy(buoy.groundswell);
-  const wind = windObservationToDisplayWithFallback(buoy.wind, { direction: "ESE", speed: "model estimate", gust: "-", degrees: 113 });
+function OffshoreBuoyCard({
+  buoy,
+  snapshot,
+}: {
+  buoy: OceanConditionSnapshot["offshoreObservations"][keyof OceanConditionSnapshot["offshoreObservations"]];
+  snapshot: OceanConditionSnapshot;
+}) {
+  const forecastToday = buoy.id === "lanai-offshore" ? getTodayMarineForecast(snapshot.marineForecastDays.leeward) : null;
+  const useForecastFallback = buoy.id === "lanai-offshore" && isInactiveSource(buoy.swell.source) && forecastToday;
+  const displayedWind = useForecastFallback ? forecastToday.wind : buoy.wind;
+  const displayedSource = useForecastFallback ? forecastToday.source : buoy.swell.source;
+  const groundswell = useForecastFallback
+    ? formatMarineForecastEnergy(forecastToday.groundswell)
+    : formatSeaEnergy(buoy.groundswell);
+  const wind = windObservationToDisplayWithFallback(displayedWind, { direction: "ESE", speed: "model estimate", gust: "-", degrees: 113 });
   const insight = getOffshoreChannelInsight(buoy);
-  const hasGroundswell = buoy.groundswell.heightFt !== null;
-  const hasWind = buoy.wind.speedKt !== null && buoy.wind.source.status === "live";
+  const hasGroundswell = useForecastFallback ? forecastToday.groundswell.heightFt !== null : buoy.groundswell.heightFt !== null;
+  const hasWind = displayedWind.speedKt !== null && (useForecastFallback || displayedWind.source.status === "live");
 
   return (
-    <article className="rounded-2xl border border-[#094c60]/12 bg-[#f7fbfb] p-4 shadow-[0_10px_24px_rgba(7,35,45,0.05)] dark:border-white/12 dark:bg-[#091d2b]">
+    <article className="flex min-h-[13.25rem] flex-col rounded-2xl border border-[#094c60]/12 bg-[#f7fbfb] p-3.5 shadow-[0_10px_24px_rgba(7,35,45,0.05)] dark:border-white/12 dark:bg-[#091d2b]">
       <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h4 className="text-lg font-semibold text-[#102b3a]">{getOffshoreDisplayName(buoy.id)}</h4>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-[#61747c]">
+          <h4 className="text-base font-semibold leading-tight text-[#102b3a] dark:text-[#f4fbff]">{getOffshoreDisplayName(buoy.id)}</h4>
+          <p className="mt-1 text-[0.62rem] font-semibold uppercase tracking-[0.08em] text-[#61747c] dark:text-[#b7cbd3]">
             {getOffshoreSubtitle(buoy.id)}
           </p>
         </div>
-        <SourceFreshnessBadge source={buoy.swell.source} compact />
+        <SourceFreshnessBadge source={displayedSource} compact />
       </div>
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+      {useForecastFallback ? (
+        <p className="mt-2 w-fit rounded-full bg-amber-50 px-2 py-0.5 text-[0.56rem] font-semibold uppercase tracking-[0.1em] text-amber-800 ring-1 ring-amber-200/80 dark:bg-amber-900/30 dark:text-amber-100 dark:ring-amber-300/20">
+          Forecast today · live buoy inactive
+        </p>
+      ) : null}
+      <div className="mt-3 grid flex-1 gap-2 sm:grid-cols-2">
         {hasGroundswell ? <ConditionMetric icon={Waves} label="Ground Swell" value={groundswell.height} detail={groundswell.meta} /> : null}
-        {hasWind ? <ConditionMetric icon={Navigation} label="Wind" value={`${wind.direction} ${wind.speed}`} detail={wind.gust !== "-" ? `gust ${wind.gust}` : "NDBC wind"} source={buoy.wind.source} /> : null}
+        {hasWind ? <ConditionMetric icon={Navigation} label="Wind" value={`${wind.direction} ${wind.speed}`} detail={wind.gust !== "-" ? `gust ${wind.gust}` : useForecastFallback ? "NOAA forecast" : "NDBC wind"} source={displayedWind.source} /> : null}
       </div>
-      {insight ? <p className="mt-3 text-sm font-semibold text-[#536b73]">{insight}</p> : null}
+      {insight ? <p className="mt-3 text-xs font-semibold leading-4 text-[#536b73] dark:text-[#b7cbd3]">{insight}</p> : null}
     </article>
   );
 }
 
 function hasUsefulOffshoreData(buoy: OceanConditionSnapshot["offshoreObservations"][keyof OceanConditionSnapshot["offshoreObservations"]]) {
-  return buoy.groundswell.heightFt !== null || (buoy.wind.speedKt !== null && buoy.wind.source.status === "live");
+  return buoy.id === "lanai-offshore" || buoy.groundswell.heightFt !== null || (buoy.wind.speedKt !== null && buoy.wind.source.status === "live");
+}
+
+function getTodayMarineForecast(days: MarineForecastDay[]) {
+  return days.find((day, index) => {
+    const weekday = getWeekdayToken(day.dayLabel.trim().replace(/\s+/g, " ").toUpperCase());
+    return formatHawaiiDateKey(getMarineForecastDate(weekday, index)) === formatHawaiiDateKey(getHawaiiTodayDate());
+  }) ?? days[0] ?? null;
+}
+
+function isInactiveSource(source: SourceLike) {
+  const ageMinutes = getSourceAgeMinutes(source);
+  return source.status !== "live" || (ageMinutes !== null && ageMinutes > 60 * 24 * 3);
 }
 
 function getOffshoreDisplayName(id: OceanConditionSnapshot["offshoreObservations"][keyof OceanConditionSnapshot["offshoreObservations"]]["id"]) {
@@ -1359,7 +1612,7 @@ function HarborMarineAlerts({ alerts }: { alerts: OceanConditionSnapshot["alerts
       <ul className="mt-2 space-y-1">
         {uniqueAlerts.slice(0, 2).map((alert) => (
           <li key={alert.id} className="text-sm font-semibold leading-5">
-            {alert.event || alert.headline}
+            {getFriendlyAlertLabel(alert)}
           </li>
         ))}
       </ul>
@@ -1380,7 +1633,7 @@ function ActiveMarineAlerts({ alerts }: { alerts: OceanConditionSnapshot["alerts
       <ul className="mt-2 space-y-1">
         {uniqueAlerts.slice(0, 2).map((alert) => (
           <li key={alert.id} className="text-sm font-semibold leading-5">
-            {alert.event || alert.headline}
+            {getFriendlyAlertLabel(alert)}
           </li>
         ))}
       </ul>
@@ -1400,6 +1653,79 @@ function getUniqueMarineAlerts(alerts: OceanConditionSnapshot["alerts"]) {
 
 function normalizeAlertKey(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function getWeatherRiskSummary(alerts: OceanConditionSnapshot["alerts"]) {
+  const combined = alerts.map((alert) => `${alert.event} ${alert.headline} ${alert.description ?? ""}`).join(" ").toLowerCase();
+  const stormName = getStormName(alerts);
+  if (/\b(cyclone|tropical|hurricane|storm|warning)\b/.test(combined)) {
+    return {
+      tone: "storm" as const,
+      label: stormName ?? "Storm watch",
+      summary: "Fast-changing surf, wind, and rain are possible. Check official updates before committing to ocean plans.",
+    };
+  }
+  if (combined.includes("hydrologic outlook") || combined.includes("flood")) {
+    return {
+      tone: "storm" as const,
+      label: "Heavy rain outlook",
+      summary: "Heavy rain and flooding are possible. Watch low roads, stream crossings, runoff, and harbor/launch conditions.",
+    };
+  }
+  if (combined.includes("high surf") && combined.includes("small craft")) {
+    return {
+      tone: "marine" as const,
+      label: "Elevated marine risk",
+      summary: "High surf and small craft conditions are active. Plan conservative launches, watch harbor entries, and expect stronger ocean energy near exposed shores.",
+    };
+  }
+  if (combined.includes("high surf")) {
+    return {
+      tone: "marine" as const,
+      label: "Surf advisory",
+      summary: "High surf risk is active. Expect stronger shorebreak, reef exposure, and more energy around exposed coastlines.",
+    };
+  }
+  if (combined.includes("small craft")) {
+    return {
+      tone: "marine" as const,
+      label: "Small craft",
+      summary: "Small craft conditions are active. Channel runs and open-water crossings need extra margin.",
+    };
+  }
+  return {
+    tone: "marine" as const,
+    label: "Advisory",
+    summary: "Active marine advisory. Check exposed shorelines, channel winds, and official updates before committing.",
+  };
+}
+
+function getFriendlyAlertLabel(alert: OceanConditionSnapshot["alerts"][number]) {
+  const text = `${alert.event} ${alert.headline}`.toLowerCase();
+  const stormName = getStormName([alert]);
+  if (stormName) return stormName;
+  if (text.includes("hydrologic outlook")) return "Heavy rain / flooding outlook";
+  if (text.includes("small craft")) return "Small Craft Advisory";
+  if (text.includes("high surf")) return "High Surf Advisory";
+  if (text.includes("tropical storm warning")) return "Tropical Storm Warning";
+  if (text.includes("tropical storm watch")) return "Tropical Storm Watch";
+  if (text.includes("hurricane warning")) return "Hurricane Warning";
+  if (text.includes("hurricane watch")) return "Hurricane Watch";
+  return alert.event || alert.headline;
+}
+
+function getStormName(alerts: OceanConditionSnapshot["alerts"]) {
+  const text = alerts.map((alert) => `${alert.event} ${alert.headline} ${alert.description}`).join(" ");
+  const match = text.match(/\b(?:Potential Tropical Cyclone|Tropical Storm|Hurricane|Post-Tropical Cyclone)\s+([A-Z][A-Za-z0-9-]*)/);
+  return match ? match[0] : null;
+}
+
+function summarizeSurfBriefing(value: string | null | undefined) {
+  const text = value?.replace(/\s+/g, " ").trim();
+  if (!text) return null;
+  const sentences = text.match(/[^.?!]+[.?!]/g)?.slice(0, 2).join(" ").trim();
+  const summary = sentences || text;
+  return summary.length > 230 ? `${summary.slice(0, 227).trim()}...` : summary;
 }
 
 function HarborWindsSection({
@@ -1550,13 +1876,21 @@ function LiveWindCard({ wind, source }: { wind: WindDisplay; source: SourceLike 
 
 function LiveSeaInlineCard({
   shoreOcean,
+  snapshot,
 }: {
   shoreOcean: ShoreOceanObservations;
+  snapshot: OceanConditionSnapshot;
 }) {
-  const bumpEnergy = formatSeaEnergy(shoreOcean.bumpEnergy);
-  const groundswell = formatSeaEnergy(shoreOcean.groundswell);
-  const hasBumpEnergy = shoreOcean.bumpEnergy.heightFt !== null;
-  const hasGroundswell = shoreOcean.groundswell.heightFt !== null;
+  const forecastToday = shoreOcean.buoyId === "51213" ? getTodayMarineForecast(snapshot.marineForecastDays.leeward) : null;
+  const useForecastFallback = shoreOcean.buoyId === "51213" && isInactiveSource(shoreOcean.swell.source) && forecastToday;
+  const liveBumpEnergy = formatSeaEnergy(shoreOcean.bumpEnergy);
+  const forecastBumpEnergy = forecastToday ? formatMarineForecastEnergy(forecastToday.bumpEnergy) : null;
+  const bumpEnergy = useForecastFallback ? forecastBumpEnergy : liveBumpEnergy;
+  const groundswell = useForecastFallback ? formatMarineForecastEnergy(forecastToday.groundswell) : formatSeaEnergy(shoreOcean.groundswell);
+  const source = useForecastFallback ? forecastToday.source : shoreOcean.swell.source;
+  const bumpDetail = useForecastFallback ? forecastBumpEnergy?.meta : `${liveBumpEnergy.period} · ${liveBumpEnergy.direction}`;
+  const hasBumpEnergy = useForecastFallback ? forecastToday.bumpEnergy.heightFt !== null : shoreOcean.bumpEnergy.heightFt !== null;
+  const hasGroundswell = useForecastFallback ? forecastToday.groundswell.heightFt !== null : shoreOcean.groundswell.heightFt !== null;
   if (!hasBumpEnergy && !hasGroundswell) return null;
 
   return (
@@ -1566,8 +1900,13 @@ function LiveSeaInlineCard({
           <Waves className="size-5 text-blue-700" />
           <CategoryPill label="Sea Energy" tone="swell" />
         </div>
-        <SourceFreshnessBadge source={shoreOcean.swell.source} compact />
+        <SourceFreshnessBadge source={source} compact />
       </div>
+      {useForecastFallback ? (
+        <p className="mt-3 w-fit rounded-full bg-amber-50 px-2 py-0.5 text-[0.56rem] font-semibold uppercase tracking-[0.1em] text-amber-800 ring-1 ring-amber-200/80 dark:bg-amber-900/30 dark:text-amber-100 dark:ring-amber-300/20">
+          Forecast today · Lanai buoy inactive
+        </p>
+      ) : null}
       <div className={`mt-5 grid gap-3 ${hasBumpEnergy && hasGroundswell ? "sm:grid-cols-2" : ""}`}>
         {hasBumpEnergy ? (
         <div className="rounded-2xl border border-blue-900/15 bg-white/70 p-4 dark:border-blue-200/15 dark:bg-[#102f46]">
@@ -1575,10 +1914,10 @@ function LiveSeaInlineCard({
             Wind Bumps
           </p>
           <p className="weather-data mt-2 text-4xl leading-none text-blue-950">
-            {bumpEnergy.height}
+            {bumpEnergy?.height}
           </p>
           <p className="weather-data mt-2 text-lg text-blue-950">
-            {bumpEnergy.period} · {bumpEnergy.direction}
+            {bumpDetail}
           </p>
           <p className="mt-2 text-xs font-semibold text-blue-900/65">
             Short-period wind swell
@@ -1900,11 +2239,13 @@ function WindArrow({
   degrees,
   large = false,
   compact = false,
+  mini = false,
   className = "text-[#0d5968]",
 }: {
   degrees: number;
   large?: boolean;
   compact?: boolean;
+  mini?: boolean;
   className?: string;
 }) {
   return (
@@ -1912,14 +2253,16 @@ function WindArrow({
       className={
         large
           ? "grid size-14 shrink-0 place-items-center"
-          : compact
-            ? "grid size-7 shrink-0 place-items-center"
-            : "grid size-9 shrink-0 place-items-center"
+          : mini
+            ? "grid size-4 shrink-0 place-items-center"
+            : compact
+              ? "grid size-5 shrink-0 place-items-center"
+              : "grid size-8 shrink-0 place-items-center"
       }
     >
       <ArrowUp
-        className={`${large ? "size-12" : compact ? "size-6" : "size-8"} ${className}`}
-        strokeWidth={large ? 3.2 : 2.9}
+        className={`${large ? "size-12" : mini ? "size-3.5" : compact ? "size-[1.125rem]" : "size-7"} ${className}`}
+        strokeWidth={large ? 3.2 : mini ? 2.6 : 2.9}
         style={{ transform: `rotate(${degrees + 180}deg)` }}
         aria-hidden
       />
@@ -2475,6 +2818,10 @@ function cardinalToDegrees(direction: string) {
   return map[direction] ?? 90;
 }
 
+function isKnownCardinalDirection(direction: string) {
+  return /^(N|NNE|NE|ENE|E|ESE|SE|SSE|S|SSW|SW|WSW|W|WNW|NW|NNW)$/.test(direction);
+}
+
 type ShoreConfig = {
   id: Shore;
   label: string;
@@ -2667,7 +3014,7 @@ function buildFallbackForecast(zone: Zone) {
     },
   ];
   const source = zone === "windward" ? windward : leeward;
-  const today = new Date();
+  const hawaiiToday = getHawaiiTodayDate();
 
   return source.map((day, index) => ({
     ...day,
@@ -2677,7 +3024,13 @@ function buildFallbackForecast(zone: Zone) {
       day: "2-digit",
       timeZone: "Pacific/Honolulu",
     }).format(
-      new Date(today.getFullYear(), today.getMonth(), today.getDate() + index),
+      addHawaiiDays(hawaiiToday, index),
     ).replace(",", "").toUpperCase(),
   }));
+}
+
+function addHawaiiDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setUTCDate(next.getUTCDate() + days);
+  return next;
 }
