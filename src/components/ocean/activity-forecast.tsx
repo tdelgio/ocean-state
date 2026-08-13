@@ -325,7 +325,7 @@ function SurfReportSummary({
         {spots.map((spot) => (
           <span key={spot.id} className="inline-flex items-center gap-1 rounded-full bg-white/75 px-2.5 py-1 text-xs font-semibold text-[#536b73] ring-1 ring-[#d8dedf]/70 dark:bg-white/8 dark:text-[#b7cbd3] dark:ring-white/10">
             <Waves className="size-3" />
-            {spot.name} {spot.surf}
+            {[spot.name, spot.surf].filter(Boolean).join(" ")}
           </span>
         ))}
         {sourceUrl ? (
@@ -333,10 +333,10 @@ function SurfReportSummary({
             href={sourceUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1 rounded-full bg-white/75 px-2.5 py-1 text-xs font-semibold text-[#0d5968] ring-1 ring-[#d8dedf]/70 transition hover:bg-white dark:bg-white/8 dark:text-[#9debf9] dark:ring-white/10"
+            className="inline-flex items-center gap-1 rounded-full bg-white/45 px-2 py-0.5 text-[0.68rem] font-semibold text-[#61747c] ring-1 ring-[#d8dedf]/55 transition hover:bg-white/75 hover:text-[#0d5968] dark:bg-white/6 dark:text-[#b7cbd3] dark:ring-white/10"
           >
-            NOAA source
-            <ExternalLink className="size-3" />
+            NOAA
+            <ExternalLink className="size-2.5" />
           </a>
         ) : null}
       </div>
@@ -369,7 +369,7 @@ function buildSurfReportSpotList(
       id: "mejana",
       name: "Mejana",
       region: "north",
-      surf: shoreSurf ?? "Report",
+      surf: shoreSurf ?? "",
     });
   }
   return unique.slice(0, 4);
@@ -545,7 +545,7 @@ function ModelTimeline({
   return (
     <section className="overflow-hidden">
       <div className="mb-2 flex flex-wrap items-end justify-between gap-2 px-1">
-        <div>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#70868e] dark:text-[#9fb4bc]">
             4 day outlook
           </span>
@@ -569,13 +569,13 @@ function ForecastSourceLink({ source }: { source: SourceLike }) {
       href={source.sourceUrl}
       target="_blank"
       rel="noreferrer"
-      className="mt-1 inline-flex items-center gap-1 text-[0.62rem] font-semibold text-[#61747c] transition hover:text-[#0d5968] dark:text-[#b7cbd3] dark:hover:text-[#9debf9]"
+      className="inline-flex items-center gap-1 rounded-full bg-white/42 px-2 py-0.5 text-[0.56rem] font-semibold uppercase tracking-[0.08em] text-[#70868e] ring-1 ring-[#d8dedf]/55 transition hover:bg-white/70 hover:text-[#0d5968] dark:bg-white/6 dark:text-[#9fb4bc] dark:ring-white/10 dark:hover:text-[#9debf9]"
     >
       {label}
-      <ExternalLink className="size-3" />
+      <ExternalLink className="size-2.5" />
     </a>
   ) : (
-    <p className="mt-1 text-[0.62rem] font-semibold text-[#61747c] dark:text-[#b7cbd3]">
+    <p className="rounded-full bg-white/42 px-2 py-0.5 text-[0.56rem] font-semibold uppercase tracking-[0.08em] text-[#70868e] ring-1 ring-[#d8dedf]/55 dark:bg-white/6 dark:text-[#9fb4bc] dark:ring-white/10">
       {label}
     </p>
   );
@@ -1340,7 +1340,7 @@ function ChannelWindCard({
       <div className="mt-3 grid gap-2 sm:grid-cols-3">
         <ChannelBumpMetric value={formattedBumpEnergy.height} detail={formattedBumpEnergy.meta} />
         <ChannelCurrentMetric current={current} />
-        <ChannelQuickMetric icon={CloudRain} label="Squalls" value={rainSummary ?? "Forecast"} detail="NOAA channel forecast" />
+        <ChannelQuickMetric icon={CloudRain} label="Showers" value={formatChannelRainValue(rainSummary)} detail="NOAA channel forecast" />
       </div>
       <ChannelExtendedForecast days={forecastDays} />
     </article>
@@ -1422,7 +1422,7 @@ function ChannelQuickMetric({
         <Icon className="size-3.5 shrink-0" />
         {label}
       </p>
-      <p className="weather-data mt-2 text-2xl leading-none text-[#102b3a] dark:text-[#e9f8fb]">{value}</p>
+      <p className="mt-2 text-base font-semibold leading-5 text-[#102b3a] dark:text-[#e9f8fb]">{value}</p>
       <p className="mt-1 text-xs font-semibold leading-4 text-[#536b73] dark:text-[#b7cbd3]">
         {detail}
       </p>
@@ -1431,7 +1431,7 @@ function ChannelQuickMetric({
 }
 
 function ChannelExtendedForecast({ days }: { days: MarineForecastDay[] }) {
-  const upcomingDays = days.length > 1 ? days.slice(1, 6) : [];
+  const upcomingDays = getUpcomingChannelForecastDays(days);
   if (!upcomingDays.length) return null;
   return (
     <div className="mt-4 overflow-hidden rounded-2xl border border-[#094c60]/10 bg-[#f3faf9] p-3 dark:border-white/12 dark:bg-[#0b2230]">
@@ -1450,7 +1450,6 @@ function ChannelExtendedForecast({ days }: { days: MarineForecastDay[] }) {
       </div>
       <div className="-mx-3 flex snap-x gap-2 overflow-x-auto px-3 pb-1">
         {upcomingDays.map((day, index) => {
-          const originalIndex = index + 1;
           const bump = formatMarineForecastEnergy(day.bumpEnergy);
           const groundswell = formatMarineForecastEnergy(day.groundswell);
           const wind = windObservationToDisplay(day.wind);
@@ -1460,7 +1459,7 @@ function ChannelExtendedForecast({ days }: { days: MarineForecastDay[] }) {
             <div key={day.dayLabel} className="w-[12rem] shrink-0 snap-start overflow-hidden rounded-2xl border border-[#094c60]/10 bg-white shadow-[0_8px_20px_rgba(7,35,45,0.04)] dark:border-white/10 dark:bg-[#091d2b]">
               <div className={`px-3 py-3 ${tone.card}`}>
               <p className="text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-[#536b73] dark:text-[#b7cbd3]">
-                {formatForecastDayLabel(day.dayLabel, originalIndex)}
+                {formatForecastDayLabel(day.dayLabel, index)}
               </p>
                 <div className="mt-3 flex items-center gap-2">
                   <WindArrow degrees={wind.degrees} compact className={tone.text} />
@@ -1508,6 +1507,20 @@ function ChannelExtendedForecast({ days }: { days: MarineForecastDay[] }) {
       </div>
     </div>
   );
+}
+
+function getUpcomingChannelForecastDays(days: MarineForecastDay[]) {
+  const todayKey = formatHawaiiDateKey(getHawaiiTodayDate());
+  const startIndex = days.findIndex((day, index) => {
+    const weekday = getWeekdayToken(day.dayLabel.trim().replace(/\s+/g, " ").toUpperCase());
+    return formatHawaiiDateKey(getMarineForecastDate(weekday, index)) === todayKey;
+  });
+  return days.slice(Math.max(0, startIndex), Math.max(0, startIndex) + 5);
+}
+
+function formatChannelRainValue(summary: string | null) {
+  if (!summary) return "No rain detail";
+  return formatChannelRainSummary(summary).primary;
 }
 
 function formatChannelRainSummary(summary: string | null) {
@@ -1759,11 +1772,11 @@ function HarborWindCard({
   const wind = windObservationToDisplay(harbor.observation);
   const tone = getWindToneFromText(wind.speed, wind.gust);
   const classes = getWindToneClasses(tone);
-  const bumpEnergy = formatSeaEnergy(snapshot.bumpEnergy);
   const vessels = getHarborVesselSchedule();
   const harborShore = getHarborShore(harbor);
   const tide = snapshot.shoreTides[harborShore];
   const forecastWindows = snapshot.shoreForecastWindows[harborShore];
+  const entrySwell = getHarborEntrySwell(snapshot, harborShore);
   return (
     <article className="ocean-card rounded-2xl border p-4">
       <div className="flex flex-col items-start gap-2 sm:flex-row sm:justify-between sm:gap-3">
@@ -1788,15 +1801,41 @@ function HarborWindCard({
         </div>
       </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        <ConditionMetric icon={Navigation} label="Entry swell" value={bumpEnergy.height} detail={`${bumpEnergy.period} · ${bumpEnergy.direction}`} />
+        <ConditionMetric icon={Navigation} label="Entry swell" value={entrySwell.value} detail={entrySwell.detail} source={entrySwell.source} />
         <ConditionMetric icon={Waves} label="Tide" value={formatTideTrend(tide.trend)} detail={formatNextTide(tide)} source={tide.source} />
         <ConditionMetric icon={CloudRain} label="Rain / Visibility" value={formatRain(forecastWindows)} detail={getRainImpact(forecastWindows)} source={forecastWindows[0]?.source} />
       </div>
       <HarborMarineAlerts alerts={snapshot.alerts} />
       <HarborVesselActivity harborName={harbor.name} vessels={vessels} />
-      <p className="mt-3 text-sm font-semibold leading-5 text-[#536b73]">{getHarborContext(harbor, wind)}</p>
     </article>
   );
+}
+
+function getHarborEntrySwell(snapshot: OceanConditionSnapshot, shore: Shore) {
+  const shoreOcean = getShoreOcean(snapshot, shore);
+  if (!isInactiveSource(shoreOcean.swell.source) && shoreOcean.bumpEnergy.heightFt !== null) {
+    const bumpEnergy = formatSeaEnergy(shoreOcean.bumpEnergy);
+    return {
+      value: bumpEnergy.height,
+      detail: `${bumpEnergy.period} · ${bumpEnergy.direction}`,
+      source: shoreOcean.bumpEnergy.source,
+    };
+  }
+  const zone = getShoreConfig(shore).zone;
+  const forecastToday = getTodayMarineForecast(snapshot.marineForecastDays[zone]);
+  if (forecastToday?.bumpEnergy.heightFt !== null && forecastToday?.bumpEnergy.heightFt !== undefined) {
+    const forecastEnergy = formatMarineForecastEnergy(forecastToday.bumpEnergy);
+    return {
+      value: forecastEnergy.height,
+      detail: `${forecastEnergy.meta} · forecast`,
+      source: forecastToday.source,
+    };
+  }
+  return {
+    value: "No entry swell",
+    detail: "NOAA forecast unavailable",
+    source: shoreOcean.swell.source,
+  };
 }
 
 function getHarborShore(harbor: HarborWindObservation): Shore {
@@ -2418,12 +2457,6 @@ function getOffshoreChannelInsight(buoy: OceanConditionSnapshot["offshoreObserva
   if (windSpeed >= 18) return "Outer channel winds are active offshore.";
   if (bumpHeight >= 3) return "Short-period wind sea is visible on the offshore buoy.";
   return null;
-}
-
-function getHarborContext(harbor: HarborWindObservation, wind: WindDisplay) {
-  const speed = extractMaxNumber(wind.speed) ?? 0;
-  if (speed >= 18) return `${harbor.name} has active harbor wind and likely chop near entries.`;
-  return `${harbor.name} wind is lighter; verify entry texture with camera when available.`;
 }
 
 function formatSeaEnergy(energy: OceanConditionSnapshot["bumpEnergy"]) {
