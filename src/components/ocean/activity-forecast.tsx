@@ -161,6 +161,8 @@ export function HomeForecastOverview({
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-7">
+      <ForecastAlertBanner alerts={snapshot.alerts} />
+
       <div className="flex w-full max-w-full justify-evenly gap-1.5 overflow-x-auto">
         {shores.map((item) => (
           <ShoreChip
@@ -171,8 +173,6 @@ export function HomeForecastOverview({
           />
         ))}
       </div>
-
-      <ForecastAlertBanner alerts={snapshot.alerts} />
 
       {liveRunPoints.length >= 2 ? (
         <RunWindCard
@@ -215,15 +215,31 @@ export function ExtendedForecastOverview({
   snapshot: OceanConditionSnapshot;
   selectedRegion?: ForecastRegion;
 }) {
+  const forecastSource = getForecastTimelineSource(snapshot.shoreForecastWindows[selectedRegion]);
+
   return (
     <div className="mx-auto w-full max-w-6xl space-y-4">
+      <ForecastAlertBanner alerts={snapshot.alerts} />
       <section className="rounded-[1.15rem] bg-white/58 p-2.5 shadow-[0_14px_36px_rgba(7,35,45,0.04)] ring-1 ring-[#d8dedf]/70 dark:bg-[#0b2230]/72 dark:ring-white/10 sm:p-4">
         <div className="flex items-center justify-between gap-3 border-b border-[#d8dedf]/75 px-0.5 pb-2.5 dark:border-white/12">
           <h1 className="flex items-center gap-2 text-xl font-semibold uppercase leading-none tracking-[0.03em] text-[#102b3a] dark:text-[#f4fbff] sm:text-2xl">
             <Waves className="size-4 text-[#0d9684] sm:size-5" />
             Forecast
           </h1>
-          <Info className="size-4 shrink-0 text-[#7b8c92] dark:text-[#9fb4bc]" aria-hidden />
+          {forecastSource?.sourceUrl ? (
+            <a
+              href={forecastSource.sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="grid size-7 shrink-0 place-items-center text-[#7b8c92] transition hover:text-[#0d5968] dark:text-[#9fb4bc] dark:hover:text-[#9debf9]"
+              title={`Open forecast source: ${getSourceDisplayName(forecastSource)}`}
+              aria-label={`Open forecast source: ${getSourceDisplayName(forecastSource)}`}
+            >
+              <Info className="size-5" />
+            </a>
+          ) : (
+            <Info className="size-5 shrink-0 text-[#7b8c92] dark:text-[#9fb4bc]" aria-hidden />
+          )}
         </div>
         <div>
           <SegmentedTabs
@@ -237,7 +253,6 @@ export function ExtendedForecastOverview({
             fullWidth
           />
         </div>
-        <ForecastAlertBanner alerts={snapshot.alerts} />
         <div className="mt-4">
           <ModelTimeline snapshot={snapshot} region={selectedRegion} />
         </div>
@@ -296,58 +311,91 @@ function SurfReportSummary({
   if (!surfOutlook) return null;
 
   const shore = surfOutlook.shores[selectedRegion];
-  const spots = buildSurfReportSpotList(surfOutlook.spots, selectedRegion, shore?.surf);
+  const spots = buildSurfReportSpotList(surfOutlook.spots, selectedRegion);
   const sourceUrl = surfOutlook.source.sourceUrl ?? surfOutlook.spotSource?.sourceUrl;
   const briefing = summarizeSurfBriefing(surfOutlook.spotBriefing ?? surfOutlook.briefing);
 
   return (
-    <section className="mt-3 rounded-[1.1rem] border border-[#094c60]/10 bg-[#f6fbfb]/82 px-3.5 py-3 shadow-[0_10px_24px_rgba(7,35,45,0.035)] dark:border-white/10 dark:bg-white/5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <p className="flex items-center gap-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.13em] text-[#536b73] dark:text-[#b7cbd3]">
-            <Waves className="size-3.5 text-[#0d9684] dark:text-[#5eead4]" />
-            Surf report
-          </p>
-          <p className="mt-1 text-sm font-semibold leading-5 text-[#102b3a] dark:text-[#e9f8fb]">
-            {briefing ?? shore?.summary ?? "Surf guidance is available from the latest Maui surf report."}
-          </p>
-        </div>
-        {shore?.surf ? (
-          <div className="shrink-0 rounded-xl bg-white/72 px-3 py-2 text-[#102b3a] ring-1 ring-[#d8dedf]/70 dark:bg-white/8 dark:text-[#f4fbff] dark:ring-white/10">
-            <p className="text-[0.56rem] font-semibold uppercase tracking-[0.12em] text-[#61747c] dark:text-[#b7cbd3]">
-              {shore.label}
-            </p>
-            <p className="weather-data mt-1 text-lg leading-none">{shore.surf}</p>
-          </div>
-        ) : null}
+    <section className="ocean-card mt-3 rounded-[1.5rem] border border-[#0d9684]/18 bg-[#f3fbfa] p-5 shadow-[0_14px_32px_rgba(7,35,45,0.04)] dark:border-teal-200/16 dark:bg-[#0b282c]">
+      <div className="flex items-center gap-2">
+        <span className="relative grid h-9 w-11 shrink-0 place-items-center text-[#0284c7] dark:text-[#38bdf8]">
+          <SurfWaveIcon />
+        </span>
+        <span className="rounded-full border border-teal-700/20 bg-teal-100 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-teal-900 dark:border-teal-200/25 dark:bg-teal-300/18 dark:text-teal-100">
+          Surf report
+        </span>
+          {sourceUrl ? (
+            <a
+              href={sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="ml-auto grid size-7 shrink-0 place-items-center text-[#61747c] transition hover:text-[#0d5968] dark:text-[#b7cbd3] dark:hover:text-[#9debf9]"
+              title="Open NOAA surf source"
+              aria-label="Open NOAA surf source"
+            >
+              <Info className="size-5" strokeWidth={2.2} />
+            </a>
+          ) : null}
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+      {shore?.surf ? (
+        <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[#102b3a] dark:text-[#e9f8fb]">
+          <span className="weather-data text-4xl leading-none">{shore.surf}</span>
+          <span className="text-sm font-semibold uppercase tracking-[0.1em] text-[#536b73] dark:text-[#b7cbd3]">
+            {shore.label}
+          </span>
+        </div>
+      ) : null}
+      <p className={`${shore?.surf ? "mt-2" : "mt-3"} text-sm font-semibold leading-6 text-[#102b3a] dark:text-[#e9f8fb]`}>
+        {briefing ?? shore?.summary ?? "Surf guidance is available from the latest Maui surf report."}
+      </p>
+      <div className="mt-4 flex flex-wrap items-center gap-1.5">
         {spots.map((spot) => (
           <span key={spot.id} className="inline-flex items-center gap-1 rounded-full bg-white/75 px-2.5 py-1 text-xs font-semibold text-[#536b73] ring-1 ring-[#d8dedf]/70 dark:bg-white/8 dark:text-[#b7cbd3] dark:ring-white/10">
             <Waves className="size-3" />
             {[spot.name, spot.surf].filter(Boolean).join(" ")}
           </span>
         ))}
-        {sourceUrl ? (
-          <a
-            href={sourceUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 rounded-full bg-white/45 px-2 py-0.5 text-[0.68rem] font-semibold text-[#61747c] ring-1 ring-[#d8dedf]/55 transition hover:bg-white/75 hover:text-[#0d5968] dark:bg-white/6 dark:text-[#b7cbd3] dark:ring-white/10"
-          >
-            NOAA
-            <ExternalLink className="size-2.5" />
-          </a>
-        ) : null}
       </div>
     </section>
+  );
+}
+
+function SurfWaveIcon() {
+  return (
+    <svg
+      className="h-8 w-10"
+      viewBox="0 0 48 40"
+      fill="none"
+      aria-hidden
+    >
+      <path
+        d="M8 17.5c5.1 2.9 10.6-.9 14.7-7 4-6 11.8-7 16.3-3.1-5.9-.2-9.1 2.3-9.3 7.5-.1 5.1 4.3 8.2 9.6 5.4"
+        stroke="currentColor"
+        strokeWidth="3.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M7 26c3.7 3 7.4 3 11.1 0 3.7 3 7.4 3 11.1 0 3.7 3 7.4 3 11.1 0"
+        stroke="currentColor"
+        strokeWidth="3.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M7 33c3.7 3 7.4 3 11.1 0 3.7 3 7.4 3 11.1 0 3.7 3 7.4 3 11.1 0"
+        stroke="currentColor"
+        strokeWidth="3.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
 function buildSurfReportSpotList(
   spots: SurfSpot[],
   selectedRegion: ForecastRegion,
-  shoreSurf?: string | null,
 ) {
   const regionSpots = spots.filter((spot) => spot.region === selectedRegion);
   const preferredNames: Partial<Record<ForecastRegion, string[]>> = {
@@ -363,16 +411,9 @@ function buildSurfReportSpotList(
     ),
     ...regionSpots,
   ];
-  const unique = dedupeSurfSpots(ordered).slice(0, 4);
-  if (selectedRegion === "north" && !unique.some((spot) => normalizeSpotName(spot.name).includes("mejana"))) {
-    unique.push({
-      id: "mejana",
-      name: "Mejana",
-      region: "north",
-      surf: shoreSurf ?? "",
-    });
-  }
-  return unique.slice(0, 4);
+  return dedupeSurfSpots(ordered)
+    .filter((spot) => spot.surf.trim().length > 0)
+    .slice(0, 4);
 }
 
 function dedupeSurfSpots(spots: SurfSpot[]) {
@@ -469,28 +510,34 @@ function ChannelsMode({
   selectedChannel: Channel;
   snapshot: OceanConditionSnapshot;
 }) {
+  const channelTabBase = "inline-flex shrink-0 items-center justify-center rounded-[0.9rem] px-2.5 py-2 text-center text-[0.68rem] font-semibold uppercase leading-4 tracking-[0.12em] transition sm:px-4 sm:text-xs sm:tracking-[0.14em]";
+  const channelTabActive = "bg-[#102b3a] text-white shadow-[0_8px_18px_rgba(7,35,45,0.12)] dark:bg-[#17d3b2] dark:text-[#06151c]";
+  const channelTabIdle = "text-[#5f7078] hover:bg-white/80 hover:text-[#102b3a] dark:text-[#b7cbd3] dark:hover:bg-white/8 dark:hover:text-white";
+
   return (
     <div className="mt-6 space-y-5">
-      <div className="space-y-2">
-        <SegmentedTabs
-          items={interIslandChannelConfigs.map((channel) => ({
-            id: channel.id,
-            label: channel.shortLabel,
-            href: `/channels?channel=${channel.id}`,
-          }))}
-          activeId={selectedChannel}
-        />
-        <Link
-          href="/channels?channel=offshore-waters"
-          prefetch={false}
-          className={`inline-flex w-fit max-w-full rounded-xl border px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition ${
-            selectedChannel === "offshore-waters"
-              ? "border-[#17242c] bg-[#17242c] text-white shadow-[0_8px_18px_rgba(7,35,45,0.12)] dark:border-white dark:bg-white dark:text-[#071723]"
-              : "border-[#d8dedf] bg-[#f8fcfd] text-[#526a73] hover:bg-white hover:text-[#17242c] dark:border-white/12 dark:bg-[#0b2230] dark:text-[#b7cbd3] dark:hover:bg-[#102a3a] dark:hover:text-white"
-          }`}
-        >
-          Offshore Waters
-        </Link>
+      <div className="max-w-full overflow-x-auto pb-1">
+        <div className="inline-flex min-w-max items-stretch gap-1 rounded-2xl border border-[#d8dedf] bg-[#f8fcfd]/78 p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] dark:border-white/12 dark:bg-[#071d2a]">
+          {interIslandChannelConfigs.map((channel) => (
+            <Link
+              key={channel.id}
+              href={`/channels?channel=${channel.id}`}
+              prefetch={false}
+              scroll={false}
+              className={`${channelTabBase} ${channel.id === selectedChannel ? channelTabActive : channelTabIdle}`}
+            >
+              {channel.shortLabel}
+            </Link>
+          ))}
+          <Link
+            href="/channels?channel=offshore-waters"
+            prefetch={false}
+            scroll={false}
+            className={`${channelTabBase} ${selectedChannel === "offshore-waters" ? channelTabActive : channelTabIdle}`}
+          >
+            Offshore
+          </Link>
+        </div>
       </div>
       <ActiveMarineAlerts alerts={snapshot.alerts} />
       {selectedChannel === "offshore-waters" ? (
@@ -540,44 +587,19 @@ function ModelTimeline({
     snapshot.marineForecastDays[zone],
   );
   const slots = buildForecastMatrixSlots(windows, days, snapshot, region);
-  const forecastSource = getForecastTimelineSource(windows);
 
   return (
     <section className="overflow-hidden">
       <div className="mb-2 flex flex-wrap items-end justify-between gap-2 px-1">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#70868e] dark:text-[#9fb4bc]">
-            4 day outlook
-          </span>
-          {forecastSource ? (
-            <ForecastSourceLink source={forecastSource} />
-          ) : null}
-        </div>
+        <span className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#70868e] dark:text-[#9fb4bc]">
+          4 day outlook
+        </span>
         <span className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#70868e] dark:text-[#9fb4bc]">
           6a · 12p · 6p
         </span>
       </div>
       <ForecastMatrix slots={slots} />
     </section>
-  );
-}
-
-function ForecastSourceLink({ source }: { source: SourceLike }) {
-  const label = `Source: ${getSourceDisplayName(source)}`;
-  return source.sourceUrl ? (
-    <a
-      href={source.sourceUrl}
-      target="_blank"
-      rel="noreferrer"
-      className="inline-flex items-center gap-1 rounded-full bg-white/42 px-2 py-0.5 text-[0.56rem] font-semibold uppercase tracking-[0.08em] text-[#70868e] ring-1 ring-[#d8dedf]/55 transition hover:bg-white/70 hover:text-[#0d5968] dark:bg-white/6 dark:text-[#9fb4bc] dark:ring-white/10 dark:hover:text-[#9debf9]"
-    >
-      {label}
-      <ExternalLink className="size-2.5" />
-    </a>
-  ) : (
-    <p className="rounded-full bg-white/42 px-2 py-0.5 text-[0.56rem] font-semibold uppercase tracking-[0.08em] text-[#70868e] ring-1 ring-[#d8dedf]/55 dark:bg-white/6 dark:text-[#9fb4bc] dark:ring-white/10">
-      {label}
-    </p>
   );
 }
 
@@ -1053,6 +1075,7 @@ function SegmentedTabs({
             key={item.id}
             href={item.href}
             prefetch={false}
+            scroll={false}
             className={`relative min-w-0 flex-1 px-2 py-3 text-center text-[0.68rem] font-semibold uppercase tracking-[0.12em] transition sm:text-xs sm:tracking-[0.16em] ${
               item.id === activeId
                 ? "text-[#102b3a] dark:text-white"
@@ -1076,6 +1099,7 @@ function SegmentedTabs({
           key={item.id}
           href={item.href}
           prefetch={false}
+          scroll={false}
           className={`shrink-0 rounded-[0.9rem] px-2.5 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.12em] transition sm:px-4 sm:text-xs sm:tracking-[0.14em] ${
             item.id === activeId
               ? "bg-[#102b3a] text-white shadow-[0_8px_18px_rgba(7,35,45,0.12)] dark:bg-[#17d3b2] dark:text-[#06151c]"
@@ -2948,7 +2972,7 @@ function getModeSubtitle(mode: ObservationMode, shore: ShoreConfig) {
     return `Live wind, bump energy, current, rain bands, and cameras for ${shore.label}.`;
   }
   if (mode === "channels") {
-    return "Pailolo, Kaiwi, and Alenuihaha wind, bump energy, current, tide, and squalls.";
+    return "Inter-island channels and offshore waters with wind, bump energy, current, and rain risk.";
   }
   return "Harbor wind, tide, current, visibility, vessel activity, and entry conditions.";
 }
