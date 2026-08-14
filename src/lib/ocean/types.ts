@@ -145,6 +145,7 @@ export interface MarineForecastEnergy {
 export interface MarineForecastDay {
   dayLabel: string;
   seas: string | null;
+  summary: string | null;
   wind: WindObservation;
   bumpEnergy: MarineForecastEnergy;
   groundswell: MarineForecastEnergy;
@@ -238,7 +239,7 @@ export interface OceanConditionSnapshot {
   harborWinds: HarborWindObservation[];
   forecastWindows: ForecastWindow[];
   shoreForecastWindows: Record<ForecastRegionId, ForecastWindow[]>;
-  marineForecastDays: Record<"windward" | "leeward", MarineForecastDay[]>;
+  marineForecastDays: Record<"windward" | "leeward" | "maalaea", MarineForecastDay[]>;
   surfOutlook: SurfOutlook | null;
   channelForecasts: Record<ChannelForecastObservation["channelId"], ChannelForecastObservation>;
   channelCurrents: Record<ChannelForecastObservation["channelId"], CurrentObservation>;

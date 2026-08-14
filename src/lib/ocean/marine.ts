@@ -7,6 +7,7 @@ const CWF_FETCH_TIMEOUT_MS = 4500;
 const ZONES = {
   windward: "PHZ117",
   leeward: "PHZ118",
+  maalaea: "PHZ119",
 } as const;
 const CHANNEL_ZONES = {
   pailolo: { zoneId: "PHZ120", displayName: "Pailolo" },
@@ -29,21 +30,25 @@ export async function getMauiMarineForecastDays(): Promise<
     const fetchedAt = new Date().toISOString();
     const text = htmlToText(await response.text());
     const issuedAt = parseIssuedAt(text);
-    const source: SourceMeta = {
-      source: "NWS Honolulu Coastal Waters Forecast",
-      status: "live",
-      sourceUrl: CWF_URL,
-      fetchedAt,
-      observedAt: issuedAt ?? undefined,
-    };
-
     return {
-      windward: parseZone(text, ZONES.windward, source),
-      leeward: parseZone(text, ZONES.leeward, source),
+      windward: parseZone(text, ZONES.windward, createZoneSource("Maui County Windward Waters", ZONES.windward, fetchedAt, issuedAt)),
+      leeward: parseZone(text, ZONES.leeward, createZoneSource("Maui County Leeward Waters", ZONES.leeward, fetchedAt, issuedAt)),
+      maalaea: parseZone(text, ZONES.maalaea, createZoneSource("Maalaea Bay", ZONES.maalaea, fetchedAt, issuedAt)),
     };
   } catch {
-    return { windward: [], leeward: [] };
+    return { windward: [], leeward: [], maalaea: [] };
   }
+}
+
+function createZoneSource(displayName: string, zoneId: string, fetchedAt: string, issuedAt: string | null): SourceMeta {
+  return {
+    source: `NWS Honolulu Coastal Waters Forecast · ${displayName}`,
+    status: "live",
+    stationId: zoneId,
+    sourceUrl: `https://forecast.weather.gov/MapClick.php?TextType=1&zoneid=${zoneId}`,
+    fetchedAt,
+    observedAt: issuedAt ?? undefined,
+  };
 }
 
 export async function getChannelForecastObservations(): Promise<Record<keyof typeof CHANNEL_ZONES, ChannelForecastObservation>> {
@@ -81,13 +86,13 @@ function parseZone(text: string, zoneId: string, source: SourceMeta): MarineFore
     .split(/\n\s*\.(?=[A-Z][A-Z ]+\.\.\.)/)
     .map((entry) => entry.match(/^([A-Z ]+)\.\.\.([\s\S]*)/)?.slice(1))
     .filter((entry): entry is [string, string] => Boolean(entry))
-    .filter(([label]) => !label.includes("NIGHT"))
-    .slice(0, 5)
+    .slice(0, 8)
     .map(([dayLabel, body]) => {
       const waveComponents = parseWaveComponents(body);
       return {
         dayLabel: dayLabel.trim(),
         seas: body.match(/Seas\s+([^.]*)\./i)?.[1]?.trim() ?? null,
+        summary: parseMarinePeriodSummary(body),
         wind: parseForecastWind(body, source),
         bumpEnergy: strongestEnergy(waveComponents.filter((wave) => wave.periodSec >= 4 && wave.periodSec <= 9)),
         groundswell: strongestEnergy(waveComponents.filter((wave) => wave.periodSec >= 10)),
@@ -130,9 +135,18 @@ function parseChannelForecast(
 }
 
 function parseForecastWind(body: string, source: SourceMeta): WindObservation {
-  const match = body.match(/([a-z]+(?:\s+[a-z]+)?)\s+winds?\s+([^.]*?knots?)/i);
-  const directionCardinal = match ? normalizeDirection(match[1]) : null;
-  const speeds = match ? [...match[2].matchAll(/\d+(?:\.\d+)?/g)].map((value) => Number.parseFloat(value[0])) : [];
+  const becomingMatch = body.match(/winds?\s+variable\s+less\s+than\s+(\d+(?:\.\d+)?)\s+knots?.*?becoming\s+([a-z]+(?:\s+[a-z]+)?)\s+to\s+(\d+(?:\.\d+)?)\s+knots?/i);
+  const match = becomingMatch ? null : body.match(/([a-z]+(?:\s+[a-z]+)?)\s+winds?\s+([^.]*?knots?)/i);
+  const directionCardinal = becomingMatch
+    ? normalizeDirection(becomingMatch[2])
+    : match
+      ? normalizeDirection(match[1])
+      : null;
+  const speeds = becomingMatch
+    ? [Number.parseFloat(becomingMatch[1]), Number.parseFloat(becomingMatch[3])]
+    : match
+      ? [...match[2].matchAll(/\d+(?:\.\d+)?/g)].map((value) => Number.parseFloat(value[0]))
+      : [];
   const speedKt = speeds.length ? Math.max(...speeds) : null;
   const speedRangeKt = speeds.length >= 2 ? ([Math.min(...speeds), Math.max(...speeds)] as [number, number]) : null;
   return {
@@ -143,6 +157,14 @@ function parseForecastWind(body: string, source: SourceMeta): WindObservation {
     directionCardinal,
     source,
   };
+}
+
+function parseMarinePeriodSummary(body: string) {
+  const cleaned = body.replace(/\s+/g, " ").trim();
+  return cleaned.match(/Tropical storm conditions possible\./i)?.[0]
+    ?? cleaned.match(/Hurricane conditions possible\./i)?.[0]
+    ?? cleaned.match(/[^.?!]+[.?!]/)?.[0]?.trim()
+    ?? null;
 }
 
 function createUnavailableChannelForecast(
