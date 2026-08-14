@@ -8,12 +8,12 @@ const THEME_KEY = "ocean-state-theme";
 const LEGACY_THEME_KEY = "downwind-theme";
 
 function getInitialTheme(): Theme {
-  if (typeof window === "undefined") return "light";
+  if (typeof window === "undefined") return "dark";
   const savedTheme =
     (window.localStorage.getItem(THEME_KEY) as Theme | null) ??
     (window.localStorage.getItem(LEGACY_THEME_KEY) as Theme | null);
   if (savedTheme === "dark" || savedTheme === "light") return savedTheme;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return "dark";
 }
 
 function applyTheme(theme: Theme) {

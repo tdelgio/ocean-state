@@ -1,8 +1,7 @@
-import type { ForecastRegionId, SourceMeta, SurfOutlook, SurfOutlookShore, SurfSpotForecast } from "./types";
+import type { ForecastRegionId, SourceMeta, SurfOutlook, SurfOutlookShore } from "./types";
 
 const SRF_URL =
   "https://forecast.weather.gov/product.php?site=HFO&issuedby=HFO&product=SRF&format=txt&version=1&glossary=0";
-const HAWAII_WEATHER_TODAY_SURF_URL = "https://www.hawaiiweathertoday.com/surfing/";
 const SRF_FETCH_TIMEOUT_MS = 4500;
 
 const SHORE_LABELS: Record<ForecastRegionId, string> = {
@@ -15,13 +14,10 @@ const SHORE_LABELS: Record<ForecastRegionId, string> = {
 export async function getNoaaSurfOutlook(): Promise<SurfOutlook | null> {
   const fetchedAt = new Date().toISOString();
   try {
-    const [response, spotReport] = await Promise.all([
-      fetch(SRF_URL, {
-        next: { revalidate: 1800 },
-        signal: AbortSignal.timeout(SRF_FETCH_TIMEOUT_MS),
-      }),
-      getHawaiiWeatherTodaySurfReport(fetchedAt),
-    ]);
+    const response = await fetch(SRF_URL, {
+      next: { revalidate: 1800 },
+      signal: AbortSignal.timeout(SRF_FETCH_TIMEOUT_MS),
+    });
     if (!response.ok) throw new Error(`NWS SRF failed with ${response.status}`);
 
     const text = htmlToText(await response.text());
@@ -36,10 +32,10 @@ export async function getNoaaSurfOutlook(): Promise<SurfOutlook | null> {
 
     return {
       issuedAt,
-      briefing: spotReport?.briefing ?? parseBriefing(text),
-      spotBriefing: spotReport?.briefing ?? null,
-      spots: spotReport?.spots ?? [],
-      spotSource: spotReport?.source ?? null,
+      briefing: parseBriefing(text),
+      spotBriefing: null,
+      spots: [],
+      spotSource: null,
       shores: {
         north: parseShoreOutlook(text, "north"),
         south: parseShoreOutlook(text, "south"),
@@ -51,57 +47,6 @@ export async function getNoaaSurfOutlook(): Promise<SurfOutlook | null> {
   } catch {
     return null;
   }
-}
-
-async function getHawaiiWeatherTodaySurfReport(fetchedAt: string): Promise<{
-  briefing: string | null;
-  spots: SurfSpotForecast[];
-  source: SourceMeta;
-} | null> {
-  try {
-    const response = await fetch(HAWAII_WEATHER_TODAY_SURF_URL, {
-      next: { revalidate: 1800 },
-      signal: AbortSignal.timeout(SRF_FETCH_TIMEOUT_MS),
-    });
-    if (!response.ok) throw new Error(`Hawaii Weather Today surf failed with ${response.status}`);
-    const text = htmlToText(await response.text());
-    return {
-      briefing: parseHawaiiWeatherTodayBriefing(text),
-      spots: parseMauiSurfSpots(text),
-      source: {
-        source: "Hawaii Weather Today Surf Forecast",
-        status: "stale",
-        sourceUrl: HAWAII_WEATHER_TODAY_SURF_URL,
-        fetchedAt,
-      },
-    };
-  } catch {
-    return null;
-  }
-}
-
-function parseMauiSurfSpots(text: string): SurfSpotForecast[] {
-  const section = text.match(/Maui Beaches([\s\S]*?)(?=\n\s*Oahu Beaches\b|\n\s*Big Island\b|\n\s*Kauai\b)/i)?.[1] ?? "";
-  return section
-    .split("\n")
-    .map((line) => line.match(/^\s*([^:\n]+):\s*([0-9/+\-\s]+)\s*$/)?.slice(1))
-    .filter((entry): entry is [string, string] => Boolean(entry))
-    .map(([name, surf]) => ({
-      id: slugify(name),
-      name: cleanSpotName(name),
-      region: getMauiSpotRegion(name),
-      surf: cleanSurfRange(`${surf} ft`),
-    }))
-    .filter((spot) => spot.surf !== "ft");
-}
-
-function parseHawaiiWeatherTodayBriefing(text: string) {
-  const raw =
-    text.match(/Forecast:\s*([\s\S]*?)(?=\n\s*Maui Beaches\b)/i)?.[1] ??
-    "";
-  const cleaned = raw.replace(/\s+/g, " ").trim();
-  const sentences = cleaned.match(/[^.?!]+[.?!]/g)?.slice(0, 3).join(" ").trim();
-  return sentences || cleaned.slice(0, 260) || null;
 }
 
 function parseShoreOutlook(text: string, shoreId: ForecastRegionId): SurfOutlookShore {
@@ -128,25 +73,6 @@ function parseShoreOutlook(text: string, shoreId: ForecastRegionId): SurfOutlook
   };
 }
 
-function cleanSpotName(value: string) {
-  return value.trim().replace(/\s+/g, " ");
-}
-
-function slugify(value: string) {
-  return cleanSpotName(value)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-function getMauiSpotRegion(name: string): ForecastRegionId {
-  const normalized = name.toLowerCase();
-  if (normalized.includes("hana") || normalized.includes("hookipa") || normalized.includes("kanaha")) return "north";
-  if (normalized.includes("kihei") || normalized.includes("wailea") || normalized.includes("maalaea")) return "south";
-  if (normalized.includes("lahaina") || normalized.includes("west")) return "west";
-  return "east";
-}
-
 function parseMauiSurfTable(text: string, label: string) {
   const mauiSection =
     text.match(/(?:^|\n)Maui[\s\S]*?(?=\n\s*(?:Kauai|Oahu|Molokai|Lanai|Big Island)\b|\n&&|\n\$)/i)?.[0] ?? text;
@@ -165,8 +91,7 @@ function parseBriefing(text: string) {
     .replace(/\s+/g, " ")
     .replace(/^The current /i, "Current ")
     .trim();
-  const sentences = cleaned.match(/[^.?!]+[.?!]/g)?.slice(0, 2).join(" ").trim();
-  return sentences || cleaned.slice(0, 220) || null;
+  return cleaned || null;
 }
 
 function extractDiscussion(text: string) {

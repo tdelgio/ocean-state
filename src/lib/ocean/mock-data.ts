@@ -285,6 +285,7 @@ const mockMarineForecastDays = [
   {
     dayLabel: "TODAY",
     seas: null,
+    summary: null,
     wind: mockWindObservation,
     bumpEnergy: { heightFt: null, periodSec: null, directionCardinal: null },
     groundswell: { heightFt: null, periodSec: null, directionCardinal: null },
@@ -500,6 +501,7 @@ export function createMockOceanSnapshot(route: RouteConfig = malikoNorthShoreRou
     marineForecastDays: {
       windward: mockMarineForecastDays,
       leeward: mockMarineForecastDays,
+      maalaea: mockMarineForecastDays,
     },
     surfOutlook: null,
     channelForecasts: {

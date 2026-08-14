@@ -26,8 +26,7 @@ export default function RootLayout({
             __html: `
 try {
   var theme = localStorage.getItem("ocean-state-theme") || localStorage.getItem("downwind-theme");
-  var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  if (theme === "dark" || (!theme && prefersDark)) {
+  if (theme !== "light") {
     document.documentElement.classList.add("dark");
   }
 } catch (_) {}

@@ -3,6 +3,7 @@ import { degreesToCardinal } from "./ndbc";
 import type { ForecastWindow, GeoPoint, SourceMeta, WeatherAlert, WindObservation } from "./types";
 
 const NWS_API_URL = "https://api.weather.gov";
+const NWS_HONOLULU_URL = "https://www.weather.gov/hfo/";
 const NWS_FETCH_TIMEOUT_MS = 4500;
 const MAUI_MARINE_ALERT_ZONES = [
   "PHZ116",
@@ -105,6 +106,7 @@ export async function getNwsAlerts(point: GeoPoint): Promise<WeatherAlert[]> {
       source: {
         source: "NWS alerts",
         status: "live",
+        sourceUrl: NWS_HONOLULU_URL,
         fetchedAt,
       },
     }));
