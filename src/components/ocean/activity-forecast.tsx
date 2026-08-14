@@ -2139,12 +2139,12 @@ function windObservationToDisplay(wind: HarborWindObservation["observation"]): W
   const speed = wind.speedRangeKt
     ? formatWindRange(wind.speedRangeKt[0], wind.speedRangeKt[1])
     : wind.speedKt !== null
-      ? `${wind.speedKt} kt`
+      ? formatWindValue(wind.speedKt)
       : "wind missing";
   return {
     direction: wind.directionCardinal ?? "-",
     speed,
-    gust: wind.gustKt !== null ? `${wind.gustKt} kt` : "-",
+    gust: wind.gustKt !== null ? formatWindValue(wind.gustKt) : "-",
     degrees: wind.directionDeg ?? 90,
     isSample: wind.source.status !== "live",
   };
@@ -2630,8 +2630,8 @@ function windObservationToDisplayWithFallback(
 
   return {
     direction: wind.directionCardinal ?? fallback.direction,
-    speed: wind.speedRangeKt ? formatWindRange(wind.speedRangeKt[0], wind.speedRangeKt[1]) : `${wind.speedKt} kt`,
-    gust: wind.gustKt !== null ? `${wind.gustKt} kt` : "-",
+    speed: wind.speedRangeKt ? formatWindRange(wind.speedRangeKt[0], wind.speedRangeKt[1]) : formatWindValue(wind.speedKt),
+    gust: wind.gustKt !== null ? formatWindValue(wind.gustKt) : "-",
     degrees: wind.directionDeg ?? fallback.degrees,
     isSample: wind.source.status !== "live",
   };
@@ -3086,6 +3086,10 @@ function formatWindRange(min: number, max: number) {
   return roundedMin === roundedMax
     ? `${roundedMin} kt`
     : `${roundedMin}-${roundedMax} kt`;
+}
+
+function formatWindValue(value: number | null) {
+  return value === null ? "-" : `${Math.round(value)} kt`;
 }
 
 function formatTime(value: string) {

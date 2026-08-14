@@ -4,13 +4,14 @@ import { useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 const FORECAST_SCROLL_KEY = "ocean-state:forecast-scroll-y";
+const RESTORE_DELAYS_MS = [0, 50, 150, 300, 600];
 
 export function PreserveForecastScroll() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const handleClick = (event: MouseEvent) => {
+    const saveScroll = (event: Event) => {
       const target = event.target instanceof Element
         ? event.target.closest("[data-preserve-forecast-scroll]")
         : null;
@@ -18,8 +19,12 @@ export function PreserveForecastScroll() {
       sessionStorage.setItem(FORECAST_SCROLL_KEY, String(window.scrollY));
     };
 
-    document.addEventListener("click", handleClick, { capture: true });
-    return () => document.removeEventListener("click", handleClick, { capture: true });
+    document.addEventListener("pointerdown", saveScroll, { capture: true });
+    document.addEventListener("click", saveScroll, { capture: true });
+    return () => {
+      document.removeEventListener("pointerdown", saveScroll, { capture: true });
+      document.removeEventListener("click", saveScroll, { capture: true });
+    };
   }, []);
 
   useEffect(() => {
@@ -32,9 +37,10 @@ export function PreserveForecastScroll() {
     const y = Number.parseInt(storedScroll, 10);
     if (!Number.isFinite(y)) return;
 
-    requestAnimationFrame(() => {
-      window.scrollTo({ top: y, behavior: "instant" });
-    });
+    const restore = () => window.scrollTo({ top: y, behavior: "auto" });
+    requestAnimationFrame(restore);
+    const timeouts = RESTORE_DELAYS_MS.map((delay) => window.setTimeout(restore, delay));
+    return () => timeouts.forEach(window.clearTimeout);
   }, [pathname, searchParams]);
 
   return null;
