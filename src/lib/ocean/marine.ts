@@ -213,7 +213,12 @@ function strongestEnergy(components: Array<MarineForecastEnergy & { heightFt: nu
 }
 
 function parseRainSummary(body: string) {
-  return body.match(/((?:Scattered|Isolated|Numerous|Occasional)[^.]*showers?[^.]*)/i)?.[1]?.trim() ?? null;
+  const weatherSentence = body
+    .split(/\.(?:\s+|$)/)
+    .map((sentence) => sentence.trim().replace(/\s+/g, " "))
+    .find((sentence) => /\b(?:rain|showers?|thunderstorms?)\b/i.test(sentence));
+
+  return weatherSentence || null;
 }
 
 function normalizeDirection(value: string) {

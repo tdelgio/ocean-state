@@ -208,8 +208,8 @@ export function HomeForecastOverview({
           <LiveSeaInlineCard shoreOcean={shoreOcean} snapshot={snapshot} />
         </div>
         <div className={`mt-4 grid gap-4 ${hasCurrent ? "lg:grid-cols-2" : ""}`}>
-          {hasCurrent ? <CurrentCard current={current} /> : null}
           <TideCard tide={snapshot.shoreTides[selectedShore]} />
+          {hasCurrent ? <CurrentCard current={current} /> : null}
         </div>
       </section>
     </div>
@@ -562,14 +562,14 @@ function ChannelsMode({
   selectedChannel: Channel;
   snapshot: OceanConditionSnapshot;
 }) {
-  const channelTabBase = "inline-flex shrink-0 items-center justify-center rounded-[0.9rem] px-2.5 py-2 text-center text-[0.68rem] font-semibold uppercase leading-4 tracking-[0.12em] transition sm:px-4 sm:text-xs sm:tracking-[0.14em]";
+  const channelTabBase = "inline-flex min-w-0 items-center justify-center rounded-[0.9rem] px-1 py-2 text-center text-[0.58rem] font-semibold uppercase leading-4 tracking-[0.06em] transition sm:px-4 sm:text-xs sm:tracking-[0.14em]";
   const channelTabActive = "bg-[#102b3a] text-white shadow-[0_8px_18px_rgba(7,35,45,0.12)] dark:bg-[#17d3b2] dark:text-[#06151c]";
   const channelTabIdle = "text-[#5f7078] hover:bg-white/80 hover:text-[#102b3a] dark:text-[#b7cbd3] dark:hover:bg-white/8 dark:hover:text-white";
 
   return (
     <div className="mt-6 space-y-5">
-      <div className="max-w-full overflow-x-auto pb-1">
-        <div className="inline-flex min-w-max items-stretch gap-1 rounded-2xl border border-[#d8dedf] bg-[#f8fcfd]/78 p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] dark:border-white/12 dark:bg-[#071d2a]">
+      <div className="w-full pb-1">
+        <div className="grid w-full grid-cols-4 items-stretch gap-0.5 rounded-2xl border border-[#d8dedf] bg-[#f8fcfd]/78 p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] dark:border-white/12 dark:bg-[#071d2a] sm:gap-1">
           {interIslandChannelConfigs.map((channel) => (
             <Link
               key={channel.id}
@@ -862,7 +862,7 @@ function buildForecastMatrixSlots(
 function buildMarineForecastPeriodSlots(
   marineForecastDays: MarineForecastDay[],
   localWindWindows: ForecastWindow[],
-  region: ForecastRegion,
+  region: ForecastRegion | null,
 ): ForecastMatrixSlot[] {
   const shownPeriods = marineForecastDays.slice(0, 8);
   const seenDayKeys = new Set<string>();
@@ -873,7 +873,9 @@ function buildMarineForecastPeriodSlots(
     const isDayStart = !seenDayKeys.has(dayKey);
     seenDayKeys.add(dayKey);
 
-    const localWind = getLocalForecastWindForMarinePeriod(localWindWindows, period, date, region);
+    const localWind = region
+      ? getLocalForecastWindForMarinePeriod(localWindWindows, period, date, region)
+      : null;
     const windSpeed = localWind?.speed ?? formatMarineWindSpeed(period.wind, period.summary);
     const windDirection = localWind?.direction ?? period.wind.directionCardinal ?? "-";
     const energy = getForecastEnergyForRows(
@@ -945,13 +947,10 @@ function formatMarineSeas(seas: string | null) {
 
 function formatMarineRainCell(summary: string | null) {
   if (!summary) return "-";
-  const normalized = summary.toLowerCase();
-  if (normalized.includes("heavy")) return "Heavy showers";
-  if (normalized.includes("likely")) return "Showers likely";
-  if (normalized.includes("scattered")) return "Scattered showers";
-  if (normalized.includes("isolated")) return "Isolated showers";
-  if (normalized.includes("showers")) return "Showers";
-  return "-";
+  const normalized = summary.trim().replace(/\s+/g, " ");
+  return normalized
+    ? `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)}`
+    : "-";
 }
 
 function formatMarinePeriodLabel(label: string) {
@@ -1619,7 +1618,7 @@ function ChannelWindCard({
         <ChannelCurrentMetric current={current} />
         <ChannelQuickMetric icon={CloudRain} label="Showers" value={formatChannelRainValue(rainSummary)} detail="NOAA channel forecast" />
       </div>
-      <ChannelExtendedForecast days={forecastDays} />
+      <ChannelForecastTimeline days={forecastDays} />
     </article>
   );
 }
@@ -1667,21 +1666,6 @@ function ChannelCurrentMetric({ current }: { current: OceanConditionSnapshot["cu
   );
 }
 
-function ChannelForecastBumpMetric({ value, detail }: { value: string; detail: string }) {
-  return (
-    <div>
-      <p className="inline-flex items-center gap-1.5 text-[0.6rem] font-semibold uppercase tracking-[0.1em] text-[#536b73] dark:text-[#b7cbd3]">
-          <Waves className="size-3.5 shrink-0" />
-          Bumps
-      </p>
-      <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[#102b3a] dark:text-[#e9f8fb]">
-        <span className="weather-data text-xl leading-none">{value}</span>
-        <span className="weather-data text-sm leading-none text-[#536b73] dark:text-[#b7cbd3]">{detail}</span>
-      </div>
-    </div>
-  );
-}
-
 function ChannelQuickMetric({
   icon: Icon,
   label,
@@ -1707,92 +1691,27 @@ function ChannelQuickMetric({
   );
 }
 
-function ChannelExtendedForecast({ days }: { days: MarineForecastDay[] }) {
-  const upcomingDays = getUpcomingChannelForecastDays(days);
-  if (!upcomingDays.length) return null;
+function ChannelForecastTimeline({ days }: { days: MarineForecastDay[] }) {
+  const slots = buildMarineForecastPeriodSlots(days, [], null);
+  if (!slots.length) return null;
+  const source = days.find((day) => day.source.sourceUrl)?.source ?? days[0]?.source ?? null;
+
   return (
-    <div className="mt-4 overflow-hidden rounded-2xl border border-[#094c60]/10 bg-[#f3faf9] p-3 dark:border-white/12 dark:bg-[#0b2230]">
-      <div className="mb-3 flex items-end justify-between gap-3">
-        <div>
-          <p className="text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-[#536b73] dark:text-[#b7cbd3]">
-            Channel outlook
-          </p>
-          <p className="mt-1 text-xs font-semibold text-[#70868e] dark:text-[#9fb4bc]">
-            NOAA forecast, not live station data
-          </p>
+    <section className="mt-4 overflow-hidden rounded-2xl border border-[#094c60]/10 bg-[#f3faf9] p-3 dark:border-white/12 dark:bg-[#0b2230]">
+      <div className="mb-2 flex flex-wrap items-end justify-between gap-2 px-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#70868e] dark:text-[#9fb4bc]">
+            4 day outlook
+          </span>
+          <ForecastZoneSourceChip source={source} label="NOAA channel forecast" />
         </div>
-        <span className="rounded-full border border-[#094c60]/10 bg-white/70 px-2 py-1 text-[0.6rem] font-semibold uppercase tracking-[0.1em] text-[#536b73] dark:border-white/12 dark:bg-[#102a3a] dark:text-[#b7cbd3]">
-          Swipe
+        <span className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#70868e] dark:text-[#9fb4bc]">
+          NOAA marine periods
         </span>
       </div>
-      <div className="-mx-3 flex snap-x gap-2 overflow-x-auto px-3 pb-1">
-        {upcomingDays.map((day, index) => {
-          const bump = formatMarineForecastEnergy(day.bumpEnergy);
-          const groundswell = formatMarineForecastEnergy(day.groundswell);
-          const wind = windObservationToDisplay(day.wind);
-          const rain = formatChannelRainSummary(day.rainSummary);
-          const tone = getWindToneClasses(getWindToneFromText(wind.speed, wind.gust));
-          return (
-            <div key={day.dayLabel} className="w-[12rem] shrink-0 snap-start overflow-hidden rounded-2xl border border-[#094c60]/10 bg-white shadow-[0_8px_20px_rgba(7,35,45,0.04)] dark:border-white/10 dark:bg-[#091d2b]">
-              <div className={`px-3 py-3 ${tone.card}`}>
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-[#536b73] dark:text-[#b7cbd3]">
-                {formatForecastDayLabel(day.dayLabel, index)}
-              </p>
-                <div className="mt-3 flex items-center gap-2">
-                  <WindArrow degrees={wind.degrees} compact className={tone.text} />
-                  <div>
-                    <p className={`weather-data text-3xl leading-none ${tone.text}`}>{wind.direction}</p>
-                    <p className={`weather-data mt-0.5 text-xl leading-none ${tone.speedText}`}>{wind.speed}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex h-full flex-col">
-                <div className="bg-[#eaf4fb] px-3 py-3 dark:bg-[#102f46]">
-                  <ChannelForecastBumpMetric value={bump.height} detail={bump.meta} />
-                  <div className="mt-2 rounded-xl bg-white/55 px-2.5 py-2 dark:bg-white/8">
-                    <p className="text-[0.58rem] font-semibold uppercase tracking-[0.1em] text-[#536b73] dark:text-[#b7cbd3]">
-                      Ground swell
-                    </p>
-                    {groundswell.height !== "No data" ? (
-                      <p className="weather-data mt-1 text-sm leading-none text-[#102b3a] dark:text-[#e9f8fb]">
-                        {groundswell.height} · {groundswell.meta}
-                      </p>
-                    ) : (
-                      <p className="mt-1 text-xs font-semibold leading-4 text-[#536b73] dark:text-[#b7cbd3]">
-                        No ground swell
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <p className="flex min-h-[4.25rem] flex-1 items-start gap-1.5 bg-[#eff9f6] px-3 py-2.5 text-xs font-semibold leading-4 text-[#536b73] dark:bg-[#0e2f33] dark:text-[#b7cbd3]">
-                  <CloudRain className="mt-0.5 size-3.5 shrink-0 text-teal-700 dark:text-teal-200" />
-                  <span className="min-w-0 leading-tight">
-                    <strong className="block text-xs font-semibold leading-4 text-[#536b73] dark:text-[#b7cbd3]">
-                      {rain.primary}
-                    </strong>
-                    {rain.secondary ? (
-                      <span className="block text-xs font-medium leading-4 text-[#7a8990] dark:text-[#a9bdc5]">
-                        {rain.secondary}
-                      </span>
-                    ) : null}
-                  </span>
-                </p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+      <ForecastMatrix slots={slots} />
+    </section>
   );
-}
-
-function getUpcomingChannelForecastDays(days: MarineForecastDay[]) {
-  const todayKey = formatHawaiiDateKey(getHawaiiTodayDate());
-  const startIndex = days.findIndex((day, index) => {
-    const weekday = getWeekdayToken(day.dayLabel.trim().replace(/\s+/g, " ").toUpperCase());
-    return formatHawaiiDateKey(getMarineForecastDate(weekday, index)) === todayKey;
-  });
-  return days.slice(Math.max(0, startIndex), Math.max(0, startIndex) + 5);
 }
 
 function formatChannelRainValue(summary: string | null) {
@@ -2108,9 +2027,9 @@ function getHarborEntrySwell(snapshot: OceanConditionSnapshot, shore: Shore) {
     };
   }
   return {
-    value: "No entry swell",
-    detail: "NOAA forecast unavailable",
-    source: shoreOcean.swell.source,
+    value: "Entry swell unavailable",
+    detail: "No reliable wave data right now",
+    source: undefined,
   };
 }
 
