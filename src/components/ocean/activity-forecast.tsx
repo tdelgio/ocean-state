@@ -644,12 +644,12 @@ function ModelTimeline({
     <section className="overflow-hidden">
       <div className="mb-2 flex flex-wrap items-end justify-between gap-2 px-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#70868e] dark:text-[#9fb4bc]">
+          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#61747c] dark:text-[#b7cbd3]">
             4 day outlook
           </span>
           <ForecastZoneSourceChip source={getForecastMarineSource(snapshot, regionConfig.zone)} label={getForecastZoneBlendLabel(region, regionConfig.zone)} />
         </div>
-        <span className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#70868e] dark:text-[#9fb4bc]">
+        <span className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[#61747c] dark:text-[#b7cbd3]">
           NOAA marine periods
         </span>
       </div>
@@ -675,22 +675,22 @@ type ForecastMatrixSlot = {
 };
 
 function ForecastMatrix({ slots }: { slots: ForecastMatrixSlot[] }) {
-  const columns = `3.55rem repeat(${slots.length}, minmax(3.35rem, 1fr))`;
-  const cellBase = "flex min-h-[2.2rem] flex-col items-center justify-center px-1.5 py-1 text-center";
+  const columns = `4rem repeat(${slots.length}, minmax(4.15rem, 1fr))`;
+  const cellBase = "flex min-h-[2.75rem] flex-col items-center justify-center px-2 py-2 text-center";
   const hasGust = slots.some((slot) => slot.gust !== "-");
   return (
-    <div className="-mx-3 overflow-x-auto px-3 pb-3 sm:-mx-5 sm:px-5">
+    <div className="overflow-x-auto pb-3">
       <div
-        className="min-w-[43.5rem] overflow-hidden rounded-[0.95rem] bg-white shadow-[0_10px_24px_rgba(7,35,45,0.04)] ring-1 ring-[#d8dedf]/65 dark:bg-[#102a3a] dark:ring-white/10"
+        className="min-w-[48rem] overflow-hidden rounded-[0.95rem] bg-white shadow-[0_10px_24px_rgba(7,35,45,0.04)] ring-1 ring-[#d8dedf]/65 dark:bg-[#102a3a] dark:ring-white/10"
         style={{ gridTemplateColumns: columns }}
       >
         <ForecastMatrixRow label="Date" columns={columns} labelClassName="bg-white dark:bg-[#102a3a]">
           {slots.map((slot) => (
             <div
               key={`${slot.key}-day`}
-              className={`${cellBase} min-h-[2rem] ${getDayBandClasses(slot, "date")}`}
+              className={`${cellBase} min-h-[2.5rem] ${getDayBandClasses(slot, "date")}`}
             >
-              <p className="text-[0.54rem] font-semibold uppercase tracking-[0.08em] text-[#102b3a] dark:text-[#f4fbff]">
+              <p className="text-[0.64rem] font-semibold uppercase tracking-[0.07em] text-[#102b3a] dark:text-[#f4fbff]">
                 {slot.isDayStart ? slot.day : ""}
               </p>
             </div>
@@ -699,8 +699,8 @@ function ForecastMatrix({ slots }: { slots: ForecastMatrixSlot[] }) {
 
         <ForecastMatrixRow label="Hour" columns={columns}>
           {slots.map((slot) => (
-            <div key={`${slot.key}-time`} className={`${cellBase} min-h-[1.95rem] ${getDayBandClasses(slot, "hour")}`}>
-              <p className="weather-data text-xs leading-none text-[#102b3a] dark:text-[#f4fbff]">{slot.time}</p>
+            <div key={`${slot.key}-time`} className={`${cellBase} min-h-[2.6rem] ${getDayBandClasses(slot, "hour")}`}>
+              <p className="weather-data text-sm leading-none text-[#102b3a] dark:text-[#f4fbff]">{slot.time}</p>
             </div>
           ))}
         </ForecastMatrixRow>
@@ -711,7 +711,7 @@ function ForecastMatrix({ slots }: { slots: ForecastMatrixSlot[] }) {
             const isWindMetric = slot.windSpeed !== "-" && /[0-9]/.test(slot.windSpeed);
             return (
               <div key={`${slot.key}-wind`} className={`${cellBase} ${power.background} ${slot.isDayStart ? "border-l border-[#c8b799] dark:border-white/18" : "border-l border-[#f0dfc2]/50 dark:border-white/6"}`}>
-                <p className={`weather-data max-w-[4.6rem] whitespace-normal text-center text-[0.62rem] leading-tight ${power.speedText}`}>
+                <p className={`weather-data max-w-[5.2rem] whitespace-normal text-center text-xs leading-tight ${power.speedText}`}>
                   {isWindMetric ? `${slot.windSpeed} kt` : slot.windSpeed}
                 </p>
                 <div className="mt-1 flex items-center justify-center gap-1">
@@ -719,7 +719,7 @@ function ForecastMatrix({ slots }: { slots: ForecastMatrixSlot[] }) {
                     <WindArrow degrees={cardinalToDegrees(slot.windDirection)} compact className="text-[#102b3a] dark:text-[#f4fbff]" />
                   ) : null}
                   {slot.windDirection !== "-" ? (
-                    <p className="weather-data text-[0.62rem] leading-none text-[#102b3a] dark:text-[#f4fbff]">{slot.windDirection}</p>
+                    <p className="weather-data text-xs leading-none text-[#102b3a] dark:text-[#f4fbff]">{slot.windDirection}</p>
                   ) : null}
                 </div>
               </div>
@@ -741,13 +741,13 @@ function ForecastMatrix({ slots }: { slots: ForecastMatrixSlot[] }) {
           {slots.map((slot) => {
             const hasWaveDirection = isKnownCardinalDirection(slot.waveDirection);
             return (
-              <div key={`${slot.key}-wave`} className={`${cellBase} bg-[#e6f3fb] dark:bg-[#102f46] ${slot.isDayStart ? "border-l border-[#b8d5e5] dark:border-white/18" : "border-l border-[#d6eaf3]/70 dark:border-white/6"}`}>
-                <p className="weather-data text-sm leading-none text-[#102b3a] dark:text-[#f4fbff]">{slot.wave === "-" ? "-" : `${slot.wave} ft`}</p>
-                <div className="mt-1 flex items-center justify-center gap-1 text-[#61747c] dark:text-[#b7cbd3]">
+              <div key={`${slot.key}-wave`} className={`${cellBase} min-h-[3.75rem] border-y border-[#a9cadc]/70 bg-[#dcedf7] py-2.5 dark:border-white/14 dark:bg-[#102f46] ${slot.isDayStart ? "border-l border-l-[#9fc2d6] dark:border-l-white/18" : "border-l border-l-[#c7e0ed]/70 dark:border-l-white/6"}`}>
+                <p className="weather-data text-base font-semibold leading-none text-[#102b3a] dark:text-[#f4fbff]">{slot.wave === "-" ? "-" : `${slot.wave} ft`}</p>
+                <div className="mt-1.5 flex items-center justify-center gap-1 text-[#536b73] dark:text-[#b7cbd3]">
                   {hasWaveDirection ? (
                     <WindArrow degrees={cardinalToDegrees(slot.waveDirection)} mini className="text-[#61747c] dark:text-[#b7cbd3]" />
                   ) : null}
-                  <p className="text-[0.52rem] font-semibold uppercase tracking-[0.05em]">
+                  <p className="text-[0.64rem] font-semibold uppercase tracking-[0.04em]">
                     {[slot.waveDirection, slot.period].filter((value) => value !== "-").join(" · ") || "-"}
                   </p>
                 </div>
@@ -759,7 +759,7 @@ function ForecastMatrix({ slots }: { slots: ForecastMatrixSlot[] }) {
         <ForecastMatrixRow label="Rain" columns={columns} icon={CloudRain}>
           {slots.map((slot) => (
             <div key={`${slot.key}-rain`} className={`${cellBase} bg-[#ecf8f5] dark:bg-[#0e2f33] ${slot.isDayStart ? "border-l border-[#bde4dd] dark:border-white/18" : "border-l border-[#d9f0ec]/70 dark:border-white/6"}`}>
-              <p className="weather-data max-w-[4.1rem] whitespace-normal text-center text-[0.62rem] leading-tight text-[#0b6f63] dark:text-[#5eead4]">
+              <p className="weather-data max-w-[5.5rem] whitespace-normal text-center text-[0.7rem] leading-[1.3] text-[#0b6f63] dark:text-[#5eead4]">
                 {slot.rain}
               </p>
             </div>
@@ -808,7 +808,7 @@ function ForecastMatrixRow({
 }) {
   return (
     <div className="grid" style={{ gridTemplateColumns: columns }}>
-      <div className={`flex min-h-[1.95rem] items-center gap-1 px-2 py-1 text-[0.5rem] font-semibold uppercase tracking-[0.1em] text-[#61747c] dark:text-[#b7cbd3] ${labelClassName ?? "bg-[#f7fbfb] dark:bg-[#0b2230]"}`}>
+      <div className={`flex min-h-[2.5rem] items-center gap-1.5 px-2.5 py-2 text-[0.62rem] font-semibold uppercase tracking-[0.08em] text-[#536b73] dark:text-[#b7cbd3] ${labelClassName ?? "bg-[#f7fbfb] dark:bg-[#0b2230]"}`}>
         {Icon ? <Icon className="size-3 shrink-0" /> : null}
         {label}
       </div>
@@ -1409,7 +1409,7 @@ function ChannelWindsSection({
   const wind = windObservationToDisplay(forecast.wind);
 
   return (
-    <section>
+    <section className="space-y-5">
       <ChannelWindCard
         name={channel.name}
         detail={channel.detail}
@@ -1418,8 +1418,8 @@ function ChannelWindsSection({
         bumpEnergy={forecast.bumpEnergy}
         rainSummary={forecast.rainSummary}
         current={current}
-        forecastDays={forecast.forecastDays}
       />
+      <ChannelForecastTimeline days={forecast.forecastDays} />
     </section>
   );
 }
@@ -1572,7 +1572,6 @@ function ChannelWindCard({
   bumpEnergy,
   rainSummary,
   current,
-  forecastDays,
 }: {
   name: string;
   detail: string;
@@ -1581,7 +1580,6 @@ function ChannelWindCard({
   bumpEnergy: MarineForecastDay["bumpEnergy"];
   rainSummary: string | null;
   current: OceanConditionSnapshot["current"];
-  forecastDays: MarineForecastDay[];
 }) {
   const tone = getWindToneFromText(wind.speed, wind.gust);
   const classes = getWindToneClasses(tone);
@@ -1618,7 +1616,6 @@ function ChannelWindCard({
         <ChannelCurrentMetric current={current} />
         <ChannelQuickMetric icon={CloudRain} label="Showers" value={formatChannelRainValue(rainSummary)} detail="NOAA channel forecast" />
       </div>
-      <ChannelForecastTimeline days={forecastDays} />
     </article>
   );
 }
@@ -1697,15 +1694,15 @@ function ChannelForecastTimeline({ days }: { days: MarineForecastDay[] }) {
   const source = days.find((day) => day.source.sourceUrl)?.source ?? days[0]?.source ?? null;
 
   return (
-    <section className="mt-4 overflow-hidden rounded-2xl border border-[#094c60]/10 bg-[#f3faf9] p-3 dark:border-white/12 dark:bg-[#0b2230]">
-      <div className="mb-2 flex flex-wrap items-end justify-between gap-2 px-1">
+    <section className="min-w-0 overflow-hidden">
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-2 px-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#70868e] dark:text-[#9fb4bc]">
+          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#61747c] dark:text-[#b7cbd3]">
             4 day outlook
           </span>
           <ForecastZoneSourceChip source={source} label="NOAA channel forecast" />
         </div>
-        <span className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-[#70868e] dark:text-[#9fb4bc]">
+        <span className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[#61747c] dark:text-[#b7cbd3]">
           NOAA marine periods
         </span>
       </div>
