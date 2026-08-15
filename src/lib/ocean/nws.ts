@@ -78,11 +78,7 @@ export async function getNwsAlerts(point: GeoPoint): Promise<WeatherAlert[]> {
     const zone = pointResponse.properties?.forecastZone?.split("/").at(-1);
     const county = pointResponse.properties?.county?.split("/").at(-1);
     const zones = Array.from(
-      new Set([
-        zone,
-        county,
-        ...MAUI_MARINE_ALERT_ZONES,
-      ].filter((value): value is string => Boolean(value))),
+      new Set([zone, county, ...MAUI_MARINE_ALERT_ZONES].filter((value): value is string => Boolean(value))),
     );
     const url = zones.length ? `${NWS_API_URL}/alerts/active?zone=${zones.join(",")}` : `${NWS_API_URL}/alerts/active?point=${point.latitude},${point.longitude}`;
     const response = await fetch(url, {
@@ -92,7 +88,20 @@ export async function getNwsAlerts(point: GeoPoint): Promise<WeatherAlert[]> {
     });
     if (!response.ok) throw new Error(`NWS alerts failed with ${response.status}`);
 
-    const json = (await response.json()) as { features?: Array<{ id?: string; properties?: Record<string, string | null> }> };
+    const json = (await response.json()) as {
+      features?: Array<{
+        id?: string;
+        properties?: {
+          headline?: string | null;
+          event?: string | null;
+          severity?: string | null;
+          effective?: string | null;
+          expires?: string | null;
+          description?: string | null;
+          affectedZones?: string[] | null;
+        };
+      }>;
+    };
     const fetchedAt = new Date().toISOString();
 
     return (json.features ?? []).map((feature, index) => ({
@@ -100,13 +109,14 @@ export async function getNwsAlerts(point: GeoPoint): Promise<WeatherAlert[]> {
       headline: feature.properties?.headline ?? feature.properties?.event ?? "NWS alert",
       severity: feature.properties?.severity ?? "Unknown",
       event: feature.properties?.event ?? "Unknown",
+      affectedZones: feature.properties?.affectedZones ?? [],
       effectiveAt: feature.properties?.effective ?? null,
       expiresAt: feature.properties?.expires ?? null,
       description: feature.properties?.description ?? "",
       source: {
         source: "NWS alerts",
         status: "live",
-        sourceUrl: NWS_HONOLULU_URL,
+        sourceUrl: feature.id ?? NWS_HONOLULU_URL,
         fetchedAt,
       },
     }));

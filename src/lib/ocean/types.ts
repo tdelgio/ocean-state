@@ -191,6 +191,7 @@ export interface WeatherAlert {
   headline: string;
   severity: string;
   event: string;
+  affectedZones?: string[];
   effectiveAt: string | null;
   expiresAt: string | null;
   description: string;
