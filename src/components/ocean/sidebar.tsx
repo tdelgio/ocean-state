@@ -15,8 +15,7 @@ export function Sidebar({ active }: { active: string }) {
   return (
     <aside className="hidden w-64 shrink-0 border-r border-[rgba(9,76,96,0.12)] bg-[#f6fbfc] p-4 lg:block">
       <Link
-        href="/home"
-        prefetch={false}
+        href="/home?shore=north"
         className="flex items-center gap-3 rounded-2xl bg-[#f7fafa] p-3 ring-1 ring-[#e4e8ea]"
       >
         <span className="grid size-11 place-items-center rounded-full bg-white text-[#0d5968] ring-1 ring-[#d8e4e7]">
@@ -37,8 +36,7 @@ export function Sidebar({ active }: { active: string }) {
         {navItems.map((item) => (
           <Link
             key={item.href}
-            href={item.href}
-            prefetch={false}
+            href={item.href === "/home" ? "/home?shore=north" : item.href}
             className={cn(
               "flex items-center gap-3 rounded-2xl px-3 py-3 transition",
               active === item.href

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function LivePage() {
-  redirect("/home");
+  redirect("/home?shore=north");
 }

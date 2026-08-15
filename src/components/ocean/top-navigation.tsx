@@ -13,7 +13,7 @@ export function TopNavigation({
   return (
     <header className="sticky top-0 z-30 border-b border-[#094c60]/10 bg-[#f7fcfd]/88 px-3 pt-3 backdrop-blur-md dark:border-white/10 dark:bg-[#071723]/88">
       <div className="mx-auto flex w-full max-w-6xl items-start justify-between gap-3">
-        <Link href="/home" prefetch={false} className="flex items-center gap-2">
+        <Link href="/home?shore=north" className="flex items-center gap-2">
           <span className="mt-0.5 grid size-8 place-items-center rounded-full border border-[#42d7ee]/28 bg-white/80 text-[#0b9fc6] shadow-[0_8px_22px_rgba(19,158,190,0.12)] dark:border-[#5eead4]/24 dark:bg-[#0c3142] dark:text-[#38d6ff] dark:shadow-[0_0_26px_rgba(56,214,255,0.2)]">
             <Waves className="size-4" />
           </span>
@@ -31,8 +31,7 @@ export function TopNavigation({
         {navItems.map((item) => (
           <Link
             key={item.href}
-            href={item.href}
-            prefetch={false}
+            href={item.href === "/home" ? "/home?shore=north" : item.href}
             className={cn(
               "group relative shrink-0 border-b-2 border-transparent px-3 pb-2.5 pt-1 text-[0.68rem] font-medium uppercase tracking-[0.11em] transition sm:px-4 sm:text-[0.72rem]",
               active === item.href

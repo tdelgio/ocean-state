@@ -34,7 +34,7 @@ try {
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col bg-[#f7fcfd] dark:bg-[#04101a]">{children}</body>
     </html>
   );
 }
