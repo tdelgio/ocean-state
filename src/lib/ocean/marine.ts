@@ -28,16 +28,20 @@ export async function getMauiMarineForecastDays(): Promise<
     if (!response.ok) throw new Error(`NWS CWF failed with ${response.status}`);
 
     const fetchedAt = new Date().toISOString();
-    const text = htmlToText(await response.text());
-    const issuedAt = parseIssuedAt(text);
-    return {
-      windward: parseZone(text, ZONES.windward, createZoneSource("Maui County Windward Waters", ZONES.windward, fetchedAt, issuedAt)),
-      leeward: parseZone(text, ZONES.leeward, createZoneSource("Maui County Leeward Waters", ZONES.leeward, fetchedAt, issuedAt)),
-      maalaea: parseZone(text, ZONES.maalaea, createZoneSource("Maalaea Bay", ZONES.maalaea, fetchedAt, issuedAt)),
-    };
+    return parseMauiMarineForecastProduct(await response.text(), fetchedAt);
   } catch {
     return { windward: [], leeward: [], maalaea: [] };
   }
+}
+
+export function parseMauiMarineForecastProduct(html: string, fetchedAt: string) {
+  const text = htmlToText(html);
+  const issuedAt = parseIssuedAt(text);
+  return {
+    windward: parseZone(text, ZONES.windward, createZoneSource("Maui County Windward Waters", ZONES.windward, fetchedAt, issuedAt)),
+    leeward: parseZone(text, ZONES.leeward, createZoneSource("Maui County Leeward Waters", ZONES.leeward, fetchedAt, issuedAt)),
+    maalaea: parseZone(text, ZONES.maalaea, createZoneSource("Maalaea Bay", ZONES.maalaea, fetchedAt, issuedAt)),
+  };
 }
 
 function createZoneSource(displayName: string, zoneId: string, fetchedAt: string, issuedAt: string | null): SourceMeta {
@@ -82,24 +86,29 @@ function parseZone(text: string, zoneId: string, source: SourceMeta): MarineFore
   const section = text.match(new RegExp(`${zoneId}-[\\s\\S]*?\\n\\s*\\$\\$`))?.[0];
   if (!section) return [];
 
-  return section
+  const periods = section
     .split(/\n\s*\.(?=[A-Z][A-Z ]+\.\.\.)/)
     .map((entry) => entry.match(/^([A-Z ]+)\.\.\.([\s\S]*)/)?.slice(1))
     .filter((entry): entry is [string, string] => Boolean(entry))
     .slice(0, 8)
     .map(([dayLabel, body]) => {
       const waveComponents = parseWaveComponents(body);
-      return {
+      const period = {
         dayLabel: dayLabel.trim(),
-        seas: body.match(/Seas\s+([^.]*)\./i)?.[1]?.trim() ?? null,
+        seas: parseSeasSummary(body),
         summary: parseMarinePeriodSummary(body),
         wind: parseForecastWind(body, source),
-        bumpEnergy: strongestEnergy(waveComponents.filter((wave) => wave.periodSec >= 4 && wave.periodSec <= 9)),
+        bumpEnergy: strongestEnergy(waveComponents.filter((wave) => wave.periodSec >= 1 && wave.periodSec <= 9)),
         groundswell: strongestEnergy(waveComponents.filter((wave) => wave.periodSec >= 10)),
         rainSummary: parseRainSummary(body),
         source,
       };
+      assertMarinePeriodIntegrity(body, period);
+      return period;
     });
+
+  assertMarineZoneIntegrity(zoneId, periods);
+  return periods;
 }
 
 function parseChannelForecast(
@@ -122,7 +131,7 @@ function parseChannelForecast(
     observedAt: issuedAt ?? undefined,
   };
   const wind = parseForecastWind(body, source);
-  const bumpEnergy = strongestEnergy(parseWaveComponents(body).filter((wave) => wave.periodSec >= 4 && wave.periodSec <= 9));
+  const bumpEnergy = strongestEnergy(parseWaveComponents(body).filter((wave) => wave.periodSec >= 1 && wave.periodSec <= 9));
 
   return {
     channelId,
@@ -135,28 +144,105 @@ function parseChannelForecast(
 }
 
 function parseForecastWind(body: string, source: SourceMeta): WindObservation {
-  const becomingMatch = body.match(/winds?\s+variable\s+less\s+than\s+(\d+(?:\.\d+)?)\s+knots?.*?becoming\s+([a-z]+(?:\s+[a-z]+)?)\s+to\s+(\d+(?:\.\d+)?)\s+knots?/i);
-  const match = becomingMatch ? null : body.match(/([a-z]+(?:\s+[a-z]+)?)\s+winds?\s+([^.]*?knots?)/i);
-  const directionCardinal = becomingMatch
-    ? normalizeDirection(becomingMatch[2])
-    : match
-      ? normalizeDirection(match[1])
-      : null;
-  const speeds = becomingMatch
-    ? [Number.parseFloat(becomingMatch[1]), Number.parseFloat(becomingMatch[3])]
-    : match
-      ? [...match[2].matchAll(/\d+(?:\.\d+)?/g)].map((value) => Number.parseFloat(value[0]))
-      : [];
+  const windSentence = body.match(/[^.]*\bwinds?\b[^.]*\./i)?.[0]
+    ?? body.match(/[^.]*\bwinds?\b[^.]*/i)?.[0]
+    ?? "";
+  const initialDirection = windSentence.match(/([a-z]+(?:\s+[a-z]+)?)\s+winds?\b/i)?.[1] ?? null;
+  const transitionDirection = windSentence.match(
+    /(?:becoming|backing\s+to|veering\s+to)\s+([a-z]+(?:\s+[a-z]+)?)(?=\s+(?:\d|to\b|around\b))/i,
+  )?.[1] ?? null;
+  const normalizedTransition = transitionDirection ? normalizeDirection(transitionDirection) : null;
+  const normalizedInitial = initialDirection && initialDirection.toLowerCase() !== "variable"
+    ? normalizeDirection(initialDirection)
+    : null;
+  const directionCardinal = normalizedTransition && isCardinalDirection(normalizedTransition)
+    ? normalizedTransition
+    : normalizedInitial;
+  const speeds = [...windSentence.matchAll(/\d+(?:\.\d+)?/g)]
+    .map((value) => Number.parseFloat(value[0]));
   const speedKt = speeds.length ? Math.max(...speeds) : null;
   const speedRangeKt = speeds.length >= 2 ? ([Math.min(...speeds), Math.max(...speeds)] as [number, number]) : null;
+  const gustKt = body.match(/gusts?\s+(?:up\s+)?to\s+(\d+(?:\.\d+)?)\s+knots?/i)?.[1];
   return {
     speedKt,
-    gustKt: null,
+    gustKt: gustKt ? Number.parseFloat(gustKt) : null,
     speedRangeKt,
     directionDeg: directionCardinal ? cardinalToDegrees(directionCardinal) : null,
     directionCardinal,
     source,
   };
+}
+
+function assertMarinePeriodIntegrity(body: string, period: MarineForecastDay) {
+  const normalized = body.replace(/\s+/g, " ");
+  const hasStormPlaceholder = /(?:tropical storm|hurricane) conditions possible/i.test(normalized);
+  if (/\bwinds?\b/i.test(normalized) && !hasStormPlaceholder && period.wind.speedKt === null) {
+    throw new Error(`Marine wind parse failed for ${period.source.stationId ?? "unknown zone"} ${period.dayLabel}`);
+  }
+  if (/\bseas?\b/i.test(normalized) && !period.seas) {
+    throw new Error(`Marine seas parse failed for ${period.source.stationId ?? "unknown zone"} ${period.dayLabel}`);
+  }
+  if (/Wave\s+Detail:/i.test(normalized)
+    && period.bumpEnergy.heightFt === null
+    && period.groundswell.heightFt === null) {
+    throw new Error(`Marine wave detail parse failed for ${period.source.stationId ?? "unknown zone"} ${period.dayLabel}`);
+  }
+  if (/\b(?:rain|showers?|thunderstorms?)\b/i.test(normalized) && !period.rainSummary) {
+    throw new Error(`Marine weather parse failed for ${period.source.stationId ?? "unknown zone"} ${period.dayLabel}`);
+  }
+
+  const numericValues = [
+    period.wind.speedKt,
+    period.wind.gustKt,
+    period.bumpEnergy.heightFt,
+    period.bumpEnergy.periodSec,
+    period.groundswell.heightFt,
+    period.groundswell.periodSec,
+  ].filter((value): value is number => value !== null);
+  if (numericValues.some((value) => !Number.isFinite(value) || value < 0)) {
+    throw new Error(`Invalid marine value for ${period.source.stationId ?? "unknown zone"} ${period.dayLabel}`);
+  }
+  if ((period.wind.speedKt ?? 0) > 100 || (period.wind.gustKt ?? 0) > 150) {
+    throw new Error(`Implausible marine wind for ${period.source.stationId ?? "unknown zone"} ${period.dayLabel}`);
+  }
+  const seaValues = period.seas
+    ? [...period.seas.matchAll(/\d+(?:\.\d+)?/g)].map((match) => Number.parseFloat(match[0]))
+    : [];
+  if (seaValues.some((value) => value > 60)) {
+    throw new Error(`Implausible sea height for ${period.source.stationId ?? "unknown zone"} ${period.dayLabel}`);
+  }
+  const cardinalValues = [
+    period.wind.directionCardinal,
+    period.bumpEnergy.directionCardinal,
+    period.groundswell.directionCardinal,
+  ].filter((value): value is string => Boolean(value));
+  if (cardinalValues.some((value) => !isCardinalDirection(value))) {
+    throw new Error(`Invalid marine direction for ${period.source.stationId ?? "unknown zone"} ${period.dayLabel}`);
+  }
+  for (const energy of [period.bumpEnergy, period.groundswell]) {
+    if ((energy.heightFt ?? 0) > 60 || (energy.periodSec ?? 0) > 30) {
+      throw new Error(`Implausible wave component for ${period.source.stationId ?? "unknown zone"} ${period.dayLabel}`);
+    }
+  }
+}
+
+function assertMarineZoneIntegrity(zoneId: string, periods: MarineForecastDay[]) {
+  if (periods.length < 4) throw new Error(`Insufficient marine periods parsed for ${zoneId}`);
+  const labels = periods.map((period) => period.dayLabel);
+  if (new Set(labels).size !== labels.length) {
+    throw new Error(`Duplicate marine periods parsed for ${zoneId}`);
+  }
+  if (periods.some((period) => period.source.stationId !== zoneId)) {
+    throw new Error(`Marine source mismatch for ${zoneId}`);
+  }
+}
+
+function parseSeasSummary(body: string) {
+  return body.match(/Seas\s+([^.]*)\./i)?.[1]?.trim().replace(/\s+/g, " ") ?? null;
+}
+
+function isCardinalDirection(value: string) {
+  return /^(?:N|NNE|NE|ENE|E|ESE|SE|SSE|S|SSW|SW|WSW|W|WNW|NW|NNW)$/.test(value);
 }
 
 function parseMarinePeriodSummary(body: string) {
