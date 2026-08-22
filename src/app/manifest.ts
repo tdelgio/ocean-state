@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Ocean State",
     description:
       "Live ocean-state observations for Maui: wind, bump energy, channels, harbors, cameras, tide, rain, and marine conditions.",
-    start_url: "/home",
+    start_url: "/home?shore=north",
     display: "standalone",
     background_color: "#edf8f7",
     theme_color: "#082838",
