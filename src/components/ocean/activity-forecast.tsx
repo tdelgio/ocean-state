@@ -717,27 +717,40 @@ function ForecastMatrix({ slots }: { slots: ForecastMatrixSlot[] }) {
 
         <ForecastMatrixRow label="Sea" columns={columns} icon={Waves}>
           {slots.map((slot) => {
-            const hasWaveDirection = isKnownCardinalDirection(slot.waveDirection);
             return (
               <div key={`${slot.key}-wave`} className={`${cellBase} min-h-[3.75rem] border-y border-[#a9cadc]/70 bg-[#dcedf7] py-2.5 dark:border-white/14 dark:bg-[#102f46] ${slot.isDayStart ? "border-l border-l-[#9fc2d6] dark:border-l-white/18" : "border-l border-l-[#c7e0ed]/70 dark:border-l-white/6"}`}>
                 <p className="weather-data text-base font-semibold leading-none text-[#102b3a] dark:text-[#f4fbff]">
                   {slot.wave === "-" ? "-" : `${slot.wave} ft`}
                 </p>
-                <div className="mt-1.5 flex items-center justify-center gap-1 text-[#536b73] dark:text-[#b7cbd3]">
-                  {hasWaveDirection ? (
-                    <WindArrow degrees={cardinalToDegrees(slot.waveDirection)} mini className="text-[#61747c] dark:text-[#b7cbd3]" />
-                  ) : null}
-                  <div className="text-left">
-                    <p className="text-[0.48rem] font-semibold uppercase leading-none tracking-[0.08em] text-[#6b7f87] dark:text-[#8fa8b1]">
-                      Wave detail
-                    </p>
-                    <p className="mt-1 text-[0.64rem] font-semibold uppercase leading-none tracking-[0.04em]">
-                      {[slot.waveDirection, slot.swellHeight !== "-" ? `${slot.swellHeight} ft` : "-", slot.period]
-                        .filter((value) => value !== "-")
-                        .join(" · ") || "-"}
+              </div>
+            );
+          })}
+        </ForecastMatrixRow>
+
+        <ForecastMatrixRow label="Swell" columns={columns} icon={Waves}>
+          {slots.map((slot) => {
+            const hasWaveDirection = isKnownCardinalDirection(slot.waveDirection);
+            return (
+              <div key={`${slot.key}-swell`} className={`${cellBase} bg-[#edf6fa] dark:bg-[#0d293b] ${slot.isDayStart ? "border-l border-[#b8d5e5] dark:border-white/18" : "border-l border-[#d6eaf3]/70 dark:border-white/6"}`}>
+                {slot.swellHeight !== "-" || slot.period !== "-" || slot.waveDirection !== "-" ? (
+                  <div className="flex flex-col items-center justify-center text-[#536b73] dark:text-[#b7cbd3]">
+                    <div className="flex items-center gap-1.5">
+                      {hasWaveDirection ? (
+                        <WindArrow degrees={cardinalToDegrees(slot.waveDirection)} mini className="text-[#61747c] dark:text-[#b7cbd3]" />
+                      ) : null}
+                      <span className="weather-data text-xs font-semibold leading-none text-[#102b3a] dark:text-[#e9f8fb]">
+                        {slot.waveDirection !== "-" ? slot.waveDirection : "Swell"}
+                      </span>
+                    </div>
+                    <p className="weather-data mt-1.5 whitespace-nowrap text-[0.68rem] font-semibold leading-none">
+                      {[slot.swellHeight !== "-" ? `${slot.swellHeight} ft` : "", slot.period !== "-" ? `@ ${slot.period}` : ""]
+                        .filter(Boolean)
+                        .join(" ")}
                     </p>
                   </div>
-                </div>
+                ) : (
+                  <span className="weather-data text-xs text-[#7b8c92] dark:text-[#8fa8b1]">—</span>
+                )}
               </div>
             );
           })}
@@ -827,8 +840,8 @@ function buildForecastMatrixSlots(
       windDirection: wind.direction,
       windSpeed: stripKt(wind.speed),
       gust: wind.gust === "-" ? "-" : stripKt(wind.gust),
-      wave: energy?.height ?? "-",
-      swellHeight: "-",
+      wave: "-",
+      swellHeight: energy?.height ?? "-",
       period: energy?.period ?? "-",
       waveDirection: energy?.direction ?? "-",
       rain: day.rain,
@@ -867,8 +880,8 @@ function buildMarineForecastPeriodSlots(
       windDirection,
       windSpeed,
       gust: period.wind.gustKt !== null ? `${Math.round(period.wind.gustKt)}` : "-",
-      wave: seaHeight ?? energy?.height ?? "-",
-      swellHeight: seaHeight && energy?.height ? energy.height : "-",
+      wave: seaHeight ?? "-",
+      swellHeight: energy?.height ?? "-",
       period: energy?.period ?? "-",
       waveDirection: energy?.direction ?? "-",
       rain: formatMarineRainCell(period.rainSummary),
@@ -988,8 +1001,8 @@ function buildForecastDaypartSlots(
           windDirection,
           windSpeed,
           gust,
-          wave: energy?.height ?? "-",
-          swellHeight: "-",
+          wave: "-",
+          swellHeight: energy?.height ?? "-",
           period: energy?.period ?? "-",
           waveDirection: energy?.direction ?? "-",
           rain: candidate.precipitationChancePercent !== null && candidate.precipitationChancePercent !== undefined
@@ -1009,8 +1022,8 @@ function buildForecastDaypartSlots(
       windDirection: fallbackDirection,
       windSpeed: fallbackWindSpeed,
       gust: fallbackGust,
-      wave: energy?.height ?? "-",
-      swellHeight: "-",
+      wave: "-",
+      swellHeight: energy?.height ?? "-",
       period: energy?.period ?? "-",
       waveDirection: energy?.direction ?? "-",
       rain: day.rain,
