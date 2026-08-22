@@ -27,13 +27,13 @@ export function TopNavigation({
         </Link>
         <ThemeToggle compact />
       </div>
-      <nav className="mx-auto mt-4 flex w-full max-w-6xl items-center justify-evenly gap-4 overflow-x-auto">
+      <nav className="mx-auto mt-4 flex w-full max-w-6xl items-center justify-between gap-0 overflow-hidden sm:justify-evenly sm:gap-4 sm:overflow-x-auto">
         {navItems.map((item) => (
           <Link
             key={item.href}
             href={item.href === "/home" ? "/home?shore=north" : item.href}
             className={cn(
-              "group relative shrink-0 border-b-2 border-transparent px-3 pb-2.5 pt-1 text-[0.68rem] font-medium uppercase tracking-[0.11em] transition sm:px-4 sm:text-[0.72rem]",
+              "group relative min-w-0 flex-1 border-b-2 border-transparent px-1 pb-2.5 pt-1 text-center text-[0.58rem] font-medium uppercase tracking-[0.05em] transition sm:flex-none sm:shrink-0 sm:px-4 sm:text-[0.72rem] sm:tracking-[0.11em]",
               active === item.href
                 ? "text-[#102b3a] dark:text-[#eaffff]"
                 : "text-[#657981] hover:text-[#102b3a] dark:text-[#9fb4bc] dark:hover:text-white",
@@ -44,7 +44,7 @@ export function TopNavigation({
               {item.label}
             </span>
             {active === item.href ? (
-              <span className="absolute inset-x-3 -bottom-0.5 h-1 rounded-full bg-[#00d5ff] shadow-[0_0_14px_rgba(0,213,255,0.55)] dark:bg-[#67e8f9] dark:shadow-[0_0_18px_rgba(103,232,249,0.78)]" />
+              <span className="absolute inset-x-1 -bottom-0.5 h-1 rounded-full bg-[#00d5ff] shadow-[0_0_14px_rgba(0,213,255,0.55)] dark:bg-[#67e8f9] dark:shadow-[0_0_18px_rgba(103,232,249,0.78)] sm:inset-x-3" />
             ) : null}
           </Link>
         ))}
