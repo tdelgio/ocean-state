@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "Live ocean-state observations for Maui: wind, bump energy, channels, harbors, cameras, tide, rain, and marine conditions.",
     start_url: "/home?shore=north",
     display: "standalone",
-    background_color: "#edf8f7",
-    theme_color: "#082838",
+    background_color: "#04101a",
+    theme_color: "#04101a",
     orientation: "portrait-primary",
     icons: [
       {

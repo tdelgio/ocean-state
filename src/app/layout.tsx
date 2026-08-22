@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,6 +13,11 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#04101a",
+  colorScheme: "dark light",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -21,6 +26,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased" suppressHydrationWarning>
       <head>
+        <style
+          dangerouslySetInnerHTML={{
+            __html: "html,body{background-color:#04101a}html.light,html.light body{background-color:#f7fcfd}",
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -28,6 +38,8 @@ try {
   var theme = localStorage.getItem("ocean-state-theme") || localStorage.getItem("downwind-theme");
   if (theme !== "light") {
     document.documentElement.classList.add("dark");
+  } else {
+    document.documentElement.classList.add("light");
   }
 } catch (_) {}
             `,
