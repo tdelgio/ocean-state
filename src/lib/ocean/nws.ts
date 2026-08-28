@@ -1,4 +1,3 @@
-import { mockForecastWindows } from "./mock-data";
 import { degreesToCardinal } from "./ndbc";
 import type { ForecastWindow, GeoPoint, SourceMeta, WeatherAlert, WindObservation } from "./types";
 
@@ -48,27 +47,28 @@ export async function getNwsForecastWindows(point: GeoPoint): Promise<ForecastWi
     });
     if (!response.ok) throw new Error(`NWS hourly forecast failed with ${response.status}`);
 
-    const json = (await response.json()) as { properties?: { periods?: NwsHourlyPeriod[]; updated?: string } };
+    const json = (await response.json()) as {
+      properties?: {
+        periods?: NwsHourlyPeriod[];
+        updateTime?: string;
+        generatedAt?: string;
+      };
+    };
     const fetchedAt = new Date().toISOString();
+    const observedAt = json.properties?.updateTime ?? json.properties?.generatedAt;
     const source: SourceMeta = {
       source: "NWS hourly forecast",
       status: "stale",
       sourceUrl: getNwsPointForecastUrl(point),
       fetchedAt,
-      observedAt: json.properties?.updated,
-      freshnessMinutes: json.properties?.updated ? minutesBetween(json.properties.updated, fetchedAt) : undefined,
+      observedAt,
+      freshnessMinutes: observedAt ? minutesBetween(observedAt, fetchedAt) : undefined,
     };
 
     return collapsePeriodsIntoWindows(json.properties?.periods ?? [], source);
-  } catch (error) {
-    return mockForecastWindows.map((window) => ({
-      ...window,
-      source: {
-        ...window.source,
-        status: "mock",
-        error: error instanceof Error ? error.message : "Unknown NWS forecast error",
-      },
-    }));
+  } catch {
+    // Never substitute fabricated forecast values for a failed live feed.
+    return [];
   }
 }
 
@@ -173,7 +173,9 @@ async function fetchNwsPoint(point: GeoPoint): Promise<NwsPointResponse> {
 }
 
 function collapsePeriodsIntoWindows(periods: NwsHourlyPeriod[], source: SourceMeta): ForecastWindow[] {
-  return periods.slice(0, 18).map((period) => {
+  // Keep four full days so regional forecast tabs can use their own NWS
+  // point grid instead of falling back to a shared broad marine zone.
+  return periods.slice(0, 96).map((period) => {
     const speedKt = parseWindKt(period.windSpeed);
     return {
       startTime: period.startTime,

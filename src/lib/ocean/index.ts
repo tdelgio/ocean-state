@@ -8,7 +8,7 @@ import { getNdbcObservations } from "./ndbc";
 import { getNwsAlerts, getNwsForecastWindows } from "./nws";
 import { getPacioosSurfaceCurrent } from "./pacioos";
 import { scoreRoute } from "./scoring";
-import { getNoaaSurfOutlook } from "./surf";
+import { getSurfOutlook } from "./surf";
 import type { ForecastRegionId, MauiShoreId, OceanConditionSnapshot, OceanIntelligenceResult, OffshoreBuoyId, OffshoreBuoyObservation, RouteConfig, ShoreOceanObservations } from "./types";
 
 export type {
@@ -134,7 +134,7 @@ async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanCond
       getNwsForecastWindows({ latitude: 20.759, longitude: -155.988 }),
       getNwsForecastWindows({ latitude: 20.872, longitude: -156.678 }),
       getMauiMarineForecastDays(),
-      getNoaaSurfOutlook(),
+      getSurfOutlook(),
       getChannelForecastObservations(),
       getNwsAlerts(route.stations.nwsPoint),
     ]);

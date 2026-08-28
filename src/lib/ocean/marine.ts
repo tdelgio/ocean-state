@@ -235,6 +235,38 @@ function assertMarineZoneIntegrity(zoneId: string, periods: MarineForecastDay[])
   if (periods.some((period) => period.source.stationId !== zoneId)) {
     throw new Error(`Marine source mismatch for ${zoneId}`);
   }
+
+  const issuedAt = periods[0]?.source.observedAt;
+  let previousWeekday = issuedAt ? getHawaiiWeekdayIndex(issuedAt) : null;
+  for (const period of periods) {
+    const token = period.dayLabel.trim().split(/\s+/)[0]?.toUpperCase();
+    const weekday = token === "TODAY" || token === "TONIGHT"
+      ? issuedAt ? getHawaiiWeekdayIndex(issuedAt) : previousWeekday
+      : getWeekdayIndex(token);
+    if (weekday === null || previousWeekday === null) {
+      previousWeekday = weekday;
+      continue;
+    }
+    const delta = (weekday - previousWeekday + 7) % 7;
+    if (delta > 1) {
+      throw new Error(`Marine calendar gap for ${zoneId}: ${period.dayLabel}`);
+    }
+    previousWeekday = weekday;
+  }
+}
+
+function getWeekdayIndex(value: string | undefined) {
+  const weekdays = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+  const index = value ? weekdays.indexOf(value) : -1;
+  return index >= 0 ? index : null;
+}
+
+function getHawaiiWeekdayIndex(value: string) {
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    timeZone: "Pacific/Honolulu",
+  }).format(new Date(value)).toUpperCase();
+  return getWeekdayIndex(weekday);
 }
 
 function parseSeasSummary(body: string) {
