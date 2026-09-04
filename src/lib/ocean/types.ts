@@ -169,6 +169,7 @@ export interface SurfSpotForecast {
 
 export interface SurfOutlook {
   issuedAt: string | null;
+  validThrough?: string | null;
   briefing: string | null;
   spotBriefing: string | null;
   spots: SurfSpotForecast[];

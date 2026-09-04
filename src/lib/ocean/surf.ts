@@ -13,8 +13,21 @@ const SHORE_LABELS: Record<ForecastRegionId, string> = {
 };
 
 export async function getSurfOutlook(): Promise<SurfOutlook | null> {
-  const hawaiiWeatherToday = await getHawaiiWeatherTodaySurfOutlook();
-  return hawaiiWeatherToday ?? getNoaaSurfOutlook();
+  // Start both sources together. Hawaii Weather Today is preferred, but its
+  // server can be very slow; NOAA should already be ready when the deadline
+  // is reached instead of starting only after the first request fails.
+  const hawaiiWeatherTodayPromise = getHawaiiWeatherTodaySurfOutlook();
+  const noaaPromise = getNoaaSurfOutlook();
+  const hawaiiWeatherToday = await withDeadline(hawaiiWeatherTodayPromise, 2500);
+  if (hawaiiWeatherToday) return hawaiiWeatherToday;
+  return withDeadline(noaaPromise, 2500);
+}
+
+function withDeadline<T>(promise: Promise<T>, timeoutMs: number): Promise<T | null> {
+  return Promise.race([
+    promise,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+  ]);
 }
 
 async function getHawaiiWeatherTodaySurfOutlook(): Promise<SurfOutlook | null> {
@@ -45,7 +58,8 @@ async function getHawaiiWeatherTodaySurfOutlook(): Promise<SurfOutlook | null> {
     };
 
     return {
-      issuedAt: null,
+      issuedAt: publication.observedAt.toISOString(),
+      validThrough: publication.validThrough.toISOString(),
       briefing,
       spotBriefing: spots.length ? "Hawaiian scale; breaking wave faces can be roughly twice the listed height." : null,
       spots,
@@ -84,6 +98,7 @@ async function getNoaaSurfOutlook(): Promise<SurfOutlook | null> {
 
     return {
       issuedAt,
+      validThrough: null,
       briefing: parseBriefing(text),
       spotBriefing: null,
       spots: [],

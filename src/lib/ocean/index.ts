@@ -70,7 +70,7 @@ export async function getOceanIntelligence(route: RouteConfig = malikoNorthShore
 
 export async function getOceanConditionSnapshot(route: RouteConfig = malikoNorthShoreRoute): Promise<OceanConditionSnapshot> {
   const now = Date.now();
-  if (snapshotCache?.routeId === route.id && snapshotCache.expiresAt > now && !hasUnusableTide(snapshotCache.snapshot)) {
+  if (snapshotCache?.routeId === route.id && snapshotCache.expiresAt > now && !hasUnusableSnapshot(snapshotCache.snapshot)) {
     return snapshotCache.snapshot;
   }
 
@@ -80,7 +80,7 @@ export async function getOceanConditionSnapshot(route: RouteConfig = malikoNorth
 
   inFlightSnapshot = loadOceanConditionSnapshot(route)
     .then((snapshot) => {
-      if (!hasUnusableTide(snapshot)) {
+      if (!hasUnusableSnapshot(snapshot)) {
         snapshotCache = {
           routeId: route.id,
           expiresAt: Date.now() + SNAPSHOT_CACHE_TTL_MS,
@@ -96,8 +96,8 @@ export async function getOceanConditionSnapshot(route: RouteConfig = malikoNorth
   return inFlightSnapshot;
 }
 
-function hasUnusableTide(snapshot: OceanConditionSnapshot) {
-  return Object.values(snapshot.shoreTides).some(
+function hasUnusableSnapshot(snapshot: OceanConditionSnapshot) {
+  return !snapshot.surfOutlook || Object.values(snapshot.shoreTides).some(
     (tide) =>
       tide.source.status === "mock" ||
       tide.source.status === "missing" ||

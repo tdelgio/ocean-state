@@ -347,19 +347,16 @@ function SurfReportSummary({
   selectedRegion: ForecastRegion;
 }) {
   const surfOutlook = snapshot.surfOutlook;
-  if (!surfOutlook) return null;
-
-  const shore = surfOutlook.shores[selectedRegion];
-  const spots = buildSurfReportSpotList(surfOutlook.spots, selectedRegion);
-  const sourceUrl = surfOutlook.source.sourceUrl;
-  const sourceName = surfOutlook.source.source;
-  const briefing = formatFullSurfBriefing(surfOutlook.briefing);
-  const shoreLabel = selectedRegion === "south" ? "Maui south-facing shores" : `Maui ${shore?.label.toLowerCase() ?? selectedRegion}-facing shores`;
-  const reportText = shore?.summary
-    ?? (spots.length
-      ? `${sourceName} does not publish a separate narrative for this Maui coast. Local readings are shown below.`
-      : briefing)
-    ?? "Surf guidance is available from the latest Maui surf report.";
+  const shore = surfOutlook?.shores[selectedRegion];
+  const spots = buildSurfReportSpotList(surfOutlook?.spots ?? [], selectedRegion);
+  const sourceUrl = surfOutlook?.source.sourceUrl;
+  const sourceName = surfOutlook?.source.source ?? "surf forecast source";
+  const briefing = formatFullSurfBriefing(surfOutlook?.briefing ?? null);
+  const forecastRange = formatSurfForecastRange(surfOutlook?.issuedAt, surfOutlook?.validThrough);
+  const reportText = briefing
+    ?? shore?.summary
+    ?? (spots.length ? `Local ${selectedRegion} Maui readings are shown below.` : null)
+    ?? "Surf report temporarily unavailable. The source will be checked again on the next refresh.";
 
   return (
     <section className="ocean-card mt-3 rounded-[1.5rem] border border-[#0d9684]/18 bg-[#f3fbfa] p-5 shadow-[0_14px_32px_rgba(7,35,45,0.04)] dark:border-teal-200/16 dark:bg-[#0b282c]">
@@ -367,7 +364,7 @@ function SurfReportSummary({
         <span className="relative grid h-9 w-11 shrink-0 place-items-center text-[#0284c7] dark:text-[#38bdf8]">
           <SurfWaveIcon />
         </span>
-        <span className="rounded-full border border-teal-700/20 bg-teal-100 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-teal-900 dark:border-teal-200/25 dark:bg-teal-300/18 dark:text-teal-100">
+        <span className="inline-flex rounded-full border border-teal-700/20 bg-teal-100 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-teal-900 dark:border-teal-200/25 dark:bg-teal-300/18 dark:text-teal-100">
           Surf report
         </span>
           {sourceUrl ? (
@@ -383,14 +380,13 @@ function SurfReportSummary({
             </a>
           ) : null}
       </div>
-      <p className="mt-4 text-xs font-semibold uppercase tracking-[0.12em] text-[#536b73] dark:text-[#b7cbd3]">
-        {shoreLabel}
-      </p>
-      <p className="mt-2 text-sm font-semibold leading-6 text-[#102b3a] dark:text-[#e9f8fb]">
-        {reportText}
-      </p>
+      {forecastRange ? (
+        <p className="mt-3 text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-[#61747c] dark:text-[#9fb8c0]">
+          {forecastRange}
+        </p>
+      ) : null}
       {spots.length ? (
-        <div className="mt-4 flex flex-wrap items-center gap-1.5">
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
           {spots.map((spot) => (
             <span key={spot.id} className="inline-flex items-center gap-1 rounded-full bg-white/75 px-2.5 py-1 text-xs font-semibold text-[#536b73] ring-1 ring-[#d8dedf]/70 dark:bg-white/8 dark:text-[#b7cbd3] dark:ring-white/10">
               <Waves className="size-3" />
@@ -399,13 +395,27 @@ function SurfReportSummary({
           ))}
         </div>
       ) : null}
-      {spots.length && surfOutlook.spotBriefing ? (
+      {spots.length && surfOutlook?.spotBriefing ? (
         <p className="mt-2 text-xs leading-5 text-[#61747c] dark:text-[#9fb8c0]">
           {surfOutlook.spotBriefing}
         </p>
       ) : null}
+      <p className={`${spots.length ? "mt-3" : forecastRange ? "mt-2" : "mt-3"} text-sm font-semibold leading-6 text-[#102b3a] dark:text-[#e9f8fb]`}>
+        {reportText}
+      </p>
     </section>
   );
+}
+
+function formatSurfForecastRange(issuedAt?: string | null, validThrough?: string | null) {
+  if (!issuedAt || !validThrough) return null;
+  const start = new Date(issuedAt);
+  const end = new Date(validThrough);
+  if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) return null;
+  const month = new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "Pacific/Honolulu" }).format(start);
+  const startDay = new Intl.DateTimeFormat("en-US", { day: "numeric", timeZone: "Pacific/Honolulu" }).format(start);
+  const endDay = new Intl.DateTimeFormat("en-US", { day: "numeric", timeZone: "Pacific/Honolulu" }).format(end);
+  return `${month} ${startDay}–${endDay}`;
 }
 
 function SurfWaveIcon() {
