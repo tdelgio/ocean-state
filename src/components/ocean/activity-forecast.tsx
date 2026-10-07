@@ -2097,29 +2097,27 @@ function LiveSeaInlineCard({
       ) : null}
       <div className={`mt-5 grid gap-3 ${hasBumpEnergy && hasGroundswell ? "sm:grid-cols-2" : ""}`}>
         {hasBumpEnergy ? (
-        <div className="rounded-2xl border border-blue-900/15 bg-white/70 p-4 dark:border-[#a9c9ca]/14 dark:bg-[#123440]">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-900/65">
+        <div className="relative overflow-hidden rounded-2xl border border-blue-900/15 bg-white/70 p-4 dark:border-[#a9c9ca]/14 dark:bg-[#123440]">
+          <span className="absolute inset-y-5 left-0 w-px rounded-full bg-[#5eead4]/30" aria-hidden />
+          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-blue-900/50 dark:text-[#9fb7c0]">
             Wind Swell
           </p>
-          <p className="weather-data mt-2 text-4xl leading-none text-blue-950">
+          <p className="weather-data mt-2 text-4xl leading-none text-blue-950 dark:text-[#d9f0ff]">
             {bumpEnergy?.height}
           </p>
-          <p className="weather-data mt-2 text-lg text-blue-950">
-            {bumpDetail}
-          </p>
+          <SeaEnergyMeta meta={bumpDetail} />
         </div>
         ) : null}
         {hasGroundswell ? (
-        <div className="rounded-2xl border border-blue-900/12 bg-white/55 p-4 dark:border-[#a9c9ca]/14 dark:bg-[#123440]">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-900/60">
+        <div className="relative overflow-hidden rounded-2xl border border-blue-900/12 bg-white/55 p-4 dark:border-[#a9c9ca]/14 dark:bg-[#123440]">
+          <span className="absolute inset-y-5 left-0 w-px rounded-full bg-[#9db7ff]/30" aria-hidden />
+          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-blue-900/50 dark:text-[#9fb7c0]">
             Groundswell
           </p>
-          <p className="weather-data mt-2 text-3xl leading-none text-blue-950">
+          <p className="weather-data mt-2 text-4xl leading-none text-blue-950 dark:text-[#d9f0ff]">
             {groundswell.height}
           </p>
-          <p className="weather-data mt-2 text-base text-blue-950">
-            {groundswell.meta}
-          </p>
+          <SeaEnergyMeta meta={groundswell.meta} />
         </div>
         ) : null}
       </div>
@@ -2142,6 +2140,24 @@ function CurrentCard({ current }: { current: OceanConditionSnapshot["current"] }
         {current.trend === "unknown" ? getCurrentSourceLabel(current.source) : `${current.trend} · ${getCurrentSourceLabel(current.source)}`}
       </p>
     </section>
+  );
+}
+
+function SeaEnergyMeta({ meta }: { meta: string | undefined }) {
+  const parts = (meta ?? "-").split(" · ").filter(Boolean);
+  if (!parts.length) return null;
+
+  return (
+    <div className="mt-3 flex flex-wrap gap-1.5">
+      {parts.map((part) => (
+        <span
+          key={part}
+          className="weather-data rounded-full border border-blue-200/20 bg-white/8 px-2 py-1 text-sm leading-none text-[#9fc6d6] dark:border-white/8 dark:bg-white/5 dark:text-[#a8c7d5]"
+        >
+          {part}
+        </span>
+      ))}
+    </div>
   );
 }
 
