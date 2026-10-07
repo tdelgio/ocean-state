@@ -12,7 +12,7 @@ export function TopNavigation({
 }) {
   return (
     <header className="sticky top-0 z-30 border-b border-[#094c60]/10 bg-[#f7fcfd]/88 px-3 pt-3 backdrop-blur-md dark:border-white/10 dark:bg-[#071723]/88">
-      <div className="mx-auto flex w-full max-w-6xl items-start justify-between gap-3">
+      <div className="mx-auto flex w-full max-w-2xl items-start justify-between gap-3">
         <Link href="/home?shore=north" className="flex items-center gap-2">
           <span className="mt-0.5 grid size-8 place-items-center rounded-full border border-[#42d7ee]/28 bg-white/80 text-[#0b9fc6] shadow-[0_8px_22px_rgba(19,158,190,0.12)] dark:border-[#9fc6c3]/25 dark:bg-[#173c49] dark:text-[#9fc6c3] dark:shadow-none">
             <Waves className="size-4" />
@@ -27,7 +27,7 @@ export function TopNavigation({
         </Link>
         <ThemeToggle compact />
       </div>
-      <nav className="mx-auto mt-4 flex w-full max-w-6xl items-center justify-between gap-0 overflow-hidden sm:justify-evenly sm:gap-4 sm:overflow-x-auto">
+      <nav className="mx-auto mt-4 flex w-full max-w-2xl items-center justify-between gap-0 overflow-hidden sm:justify-evenly sm:gap-4 sm:overflow-x-auto">
         {navItems.map((item) => (
           <Link
             key={item.href}

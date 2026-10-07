@@ -18,8 +18,8 @@ export function OceanAppShell({
       <TopNavigation active={active} />
       <div className="relative flex min-h-screen min-w-0">
         <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-          <section className="mx-auto w-full min-w-0 max-w-6xl px-3 py-5 sm:px-6 lg:px-8">{children}</section>
-          <footer className="mx-auto mt-auto w-full max-w-6xl px-3 pb-6 pt-4 text-xs font-semibold text-[#5f7078] sm:px-6 lg:px-8 dark:text-[#b7cbd3]">
+          <section className="mx-auto w-full min-w-0 max-w-2xl px-3 py-5 sm:px-6 lg:px-8">{children}</section>
+          <footer className="mx-auto mt-auto w-full max-w-2xl px-3 pb-6 pt-4 text-xs font-semibold text-[#5f7078] sm:px-6 lg:px-8 dark:text-[#b7cbd3]">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[#094c60]/12 pt-4 dark:border-white/12">
               <span>Live ocean observations for Maui. Sources may be delayed.</span>
               <InstallAppLink />

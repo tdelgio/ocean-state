@@ -101,9 +101,9 @@ export function ActivityForecastPage({
   const activeShoreOcean = getShoreOcean(snapshot, selectedShore);
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6">
+    <div className="mx-auto w-full max-w-2xl space-y-6">
       {mode === "shores" ? (
-        <div className="flex w-full max-w-full justify-evenly gap-1.5 overflow-x-auto">
+        <div className="flex w-full max-w-full items-center justify-evenly gap-1.5 overflow-x-auto py-2">
           {shores.map((shore) => (
             <ShoreChip
               key={shore}
@@ -168,10 +168,10 @@ export function HomeForecastOverview({
   const hasLiveWind = isLiveWindSource(shoreOcean.wind.source) && shoreOcean.wind.speedKt !== null;
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-7">
+    <div className="mx-auto w-full max-w-2xl space-y-7">
       <ForecastAlertBanner alerts={snapshot.alerts} />
 
-      <div className="flex w-full max-w-full justify-evenly gap-1.5 overflow-x-auto">
+      <div className="flex w-full max-w-full items-center justify-evenly gap-1.5 overflow-x-auto py-2">
         {shores.map((item) => (
           <ShoreChip
             key={item}
@@ -191,7 +191,7 @@ export function HomeForecastOverview({
           {hasLiveWind && !hasRunWind ? <LiveWindCard wind={wind} source={shoreOcean.wind.source} /> : null}
           <LiveSeaInlineCard shoreOcean={shoreOcean} snapshot={snapshot} />
         </div>
-        <div className={`grid gap-4 ${hasCurrent ? "lg:grid-cols-2" : ""}`}>
+        <div className="grid gap-4">
           <TideCard tide={snapshot.shoreTides[selectedShore]} />
           {hasCurrent ? <CurrentCard current={current} /> : null}
         </div>
@@ -210,7 +210,7 @@ export function ExtendedForecastOverview({
   const forecastSource = getForecastSourceForRegion(snapshot, selectedRegion);
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-4">
+    <div className="mx-auto w-full max-w-2xl space-y-4">
       <PreserveForecastScroll />
       <ForecastAlertBanner alerts={snapshot.alerts} />
       <section className="rounded-[1.15rem] bg-white/58 p-2.5 shadow-[0_14px_36px_rgba(7,35,45,0.04)] ring-1 ring-[#d8dedf]/70 dark:bg-[#0b2230]/72 dark:ring-white/10 sm:p-4">
@@ -1290,9 +1290,8 @@ type RunWindPoint = {
 function RunWindCard({ points }: { points: RunWindPoint[] }) {
   return (
     <section className="ocean-card mb-4 max-w-full overflow-hidden rounded-[1.35rem] border shadow-[0_12px_28px_rgba(8,74,92,0.08)]">
-      <div className="flex items-center gap-2 px-4 py-3.5">
-        <Navigation className="size-5 text-[#168ba5] dark:text-[#67d8ee]" />
-        <h3 className="text-[0.92rem] font-medium leading-tight text-[#30444c] dark:text-[#dcebef]">Live Wind</h3>
+      <div className="px-4 py-3">
+        <ObservationCardHeader icon={Navigation} label="Wind" tone="wind" />
       </div>
       <div className="grid border-t border-[#d8dedf]/60 dark:border-white/8" style={{ gridTemplateColumns: `repeat(${points.length}, minmax(0, 1fr))` }}>
         {points.map((point, index) => {
@@ -2049,14 +2048,8 @@ function LiveWindCard({ wind, source }: { wind: WindDisplay; source: SourceLike 
   const tone = getWindToneFromText(wind.speed, wind.gust);
   const classes = getWindToneClasses(tone);
   return (
-    <div className="ocean-card rounded-[1.35rem] border p-4 shadow-[0_16px_38px_rgba(8,74,92,0.08)]">
-      <div className="flex flex-col items-start gap-2 sm:flex-row sm:justify-between sm:gap-3">
-        <div className="flex items-center gap-2">
-          <Navigation className="size-5 text-[#17242c]" />
-          <h3 className="text-[0.92rem] font-medium leading-tight text-[#30444c] dark:text-[#dcebef]">Live Wind</h3>
-        </div>
-        <SourceFreshnessBadge source={source} compact />
-      </div>
+    <div className="ocean-card rounded-[1.5rem] border p-5 shadow-[0_16px_38px_rgba(8,74,92,0.08)]">
+      <ObservationCardHeader icon={Navigation} label="Wind" tone="wind" source={source} />
       <div className={`mt-4 flex items-center gap-4 rounded-2xl border p-5 ${classes.card}`}>
         {wind.speed === "No live wind" ? null : <WindArrow degrees={wind.degrees} large className={classes.text} />}
         <div>
@@ -2095,16 +2088,8 @@ function LiveSeaInlineCard({
   if (!hasBumpEnergy && !hasGroundswell) return null;
 
   return (
-    <section className="ocean-card rounded-[1.35rem] border border-blue-800/18 bg-[#dbeafe] p-5 shadow-[0_12px_28px_rgba(8,74,92,0.08)] dark:border-[#a9c9ca]/18 dark:bg-[#0b2632]">
-      <div className="flex flex-col items-start gap-2 sm:flex-row sm:justify-between sm:gap-3">
-        <div className="flex items-center gap-2 pt-1">
-          <span className="text-blue-700 dark:text-[#9fc6c3]">
-            <SurfWaveIcon className="h-5 w-6" />
-          </span>
-          <h3 className="text-[0.92rem] font-medium leading-tight text-blue-950">Live Ocean</h3>
-        </div>
-        <SourceFreshnessBadge source={source} compact />
-      </div>
+    <section className="ocean-card rounded-[1.5rem] border border-blue-800/18 bg-[#dbeafe] p-5 shadow-[0_12px_28px_rgba(8,74,92,0.08)] dark:border-[#a9c9ca]/18 dark:bg-[#0b2632]">
+      <ObservationCardHeader icon={SurfWaveIcon} label="Ocean" tone="swell" source={source} />
       {useForecastFallback ? (
         <p className="mt-3 w-fit rounded-full bg-amber-50 px-2 py-0.5 text-[0.56rem] font-semibold uppercase tracking-[0.1em] text-amber-800 ring-1 ring-amber-200/80 dark:bg-amber-900/30 dark:text-amber-100 dark:ring-amber-300/20">
           Forecast today · Lanai buoy inactive
@@ -2146,13 +2131,9 @@ function CurrentCard({ current }: { current: OceanConditionSnapshot["current"] }
   const label = getCurrentCardLabel(current.source);
   const currentValue = getCurrentDisplayParts(current);
   return (
-    <section className="ocean-card rounded-[1.5rem] border border-blue-800/18 bg-[#dbeafe] p-5 dark:border-[#a9c9ca]/18 dark:bg-[#0b2632]">
-      <div className="flex items-center gap-2">
-        <Compass className="size-5 text-blue-700" />
-        <CategoryPill label={label} tone="tide" />
-        <RunSourceDisclosure source={current.source} />
-      </div>
-      <div className="mt-5 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-blue-950">
+    <section className="ocean-card rounded-[1.5rem] border border-blue-800/18 bg-[#dbeafe] p-6 dark:border-[#a9c9ca]/18 dark:bg-[#0b2632]">
+      <ObservationCardHeader icon={Compass} label={label} tone="tide" source={current.source} useDisclosure />
+      <div className="mt-6 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-blue-950">
         <span className="weather-data text-4xl leading-none">{currentValue.speed}</span>
         {currentValue.unit ? <span className="weather-data text-2xl leading-none">{currentValue.unit}</span> : null}
         {currentValue.direction ? <span className="weather-data text-3xl leading-none">{currentValue.direction}</span> : null}
@@ -2167,14 +2148,8 @@ function CurrentCard({ current }: { current: OceanConditionSnapshot["current"] }
 function TideCard({ tide }: { tide: OceanConditionSnapshot["tide"] }) {
   const tideEvents = getOrderedTideEvents(tide);
   return (
-    <section className="ocean-card rounded-[1.5rem] border border-indigo-800/18 bg-[#e0e7ff] p-4 dark:border-[#a9c9ca]/18 dark:bg-[#0b2632]">
-      <div className="flex flex-col items-start gap-2 sm:flex-row sm:justify-between sm:gap-3">
-        <div className="flex items-center gap-2">
-          <Waves className="size-5 text-indigo-700 dark:text-indigo-300" />
-          <CategoryPill label="Tide" tone="tide" />
-        </div>
-        <SourceFreshnessBadge source={tide.source} compact />
-      </div>
+    <section className="ocean-card rounded-[1.5rem] border border-indigo-800/18 bg-[#e0e7ff] p-5 dark:border-[#a9c9ca]/18 dark:bg-[#0b2632]">
+      <ObservationCardHeader icon={Waves} label="Tide" tone="tide" source={tide.source} />
       <div className="mt-4 flex items-center gap-2">
         <div>
           <TideTrendIcon trend={tide.trend} />
@@ -2376,19 +2351,44 @@ function CategoryPill({
   tone: "wind" | "gust" | "swell" | "tide" | "rain" | "alert";
 }) {
   const classes = {
-    wind: "border-[#d8dedf] bg-[#fbfaf6] text-[#17242c]",
+    wind: "border-[#8fb9c4]/35 bg-[#173949] text-[#d3edf4] dark:border-[#8fb9c4]/35 dark:bg-[#173949] dark:text-[#d3edf4]",
     gust: "border-amber-800/25 bg-[#fde68a] text-[#78350f] dark:border-orange-300/45 dark:bg-[#431c0b] dark:text-[#fed7aa]",
-    swell: "border-blue-800/20 bg-[#bfdbfe] text-[#0f2f5f]",
-    tide: "border-indigo-800/20 bg-[#c7d2fe] text-[#263268]",
+    swell: "border-[#8fb9c4]/35 bg-[#173949] text-[#d3edf4] dark:border-[#8fb9c4]/35 dark:bg-[#173949] dark:text-[#d3edf4]",
+    tide: "border-[#8fb9c4]/35 bg-[#173949] text-[#d3edf4] dark:border-[#8fb9c4]/35 dark:bg-[#173949] dark:text-[#d3edf4]",
     rain: "border-teal-800/20 bg-[#bfeee5] text-[#0a463f]",
     alert: "border-orange-800/25 bg-[#fed7aa] text-[#7c2d12]",
   };
   return (
     <span
-      className={`inline-flex rounded-full border px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-[0.12em] ${classes[tone]}`}
+      className={`inline-flex rounded-full border px-2 py-0.5 text-[0.725rem] font-semibold uppercase tracking-[0.12em] ${classes[tone]}`}
     >
       {label}
     </span>
+  );
+}
+
+function ObservationCardHeader({
+  icon: Icon,
+  label,
+  tone,
+  source,
+  useDisclosure = false,
+}: {
+  icon: ElementType;
+  label: string;
+  tone: "wind" | "swell" | "tide";
+  source?: SourceLike;
+  useDisclosure?: boolean;
+}) {
+  return (
+    <div className="flex flex-col items-start gap-2 sm:flex-row sm:justify-between sm:gap-3">
+      <div className="flex items-center gap-2">
+        <Icon className={`text-[#8fd8e8] dark:text-[#8fd8e8] ${label === "Ocean" ? "h-7 w-8" : "size-6"}`} />
+        <CategoryPill label={label} tone={tone} />
+        {useDisclosure && source ? <RunSourceDisclosure source={source} /> : null}
+      </div>
+      {!useDisclosure && source ? <SourceFreshnessBadge source={source} compact /> : null}
+    </div>
   );
 }
 
@@ -3057,8 +3057,8 @@ function ShoreChip({
       prefetch={false}
       className={
         active
-          ? "shrink-0 whitespace-nowrap rounded-xl border border-[#17242c] bg-[#17242c] px-3 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-white shadow-[0_10px_22px_rgba(7,35,45,0.14)] dark:border-[#9fc6c3] dark:bg-[#9fc6c3] dark:text-[#102b33]"
-          : "shrink-0 whitespace-nowrap rounded-xl border border-[#d8dedf] bg-[#fbfaf6] px-3 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-[#526a73] transition hover:border-[#17242c]/35 hover:text-[#102b3a] dark:border-white/12 dark:bg-[#102a3a] dark:text-[#c9d9df] dark:hover:border-white/35 dark:hover:text-white"
+          ? "shrink-0 whitespace-nowrap rounded-xl border border-[#17242c] bg-[#17242c] px-3 pb-2.5 pt-3 text-[0.68rem] font-semibold uppercase leading-none tracking-[0.12em] text-white shadow-[0_10px_22px_rgba(7,35,45,0.14)] dark:border-[#9fc6c3] dark:bg-[#9fc6c3] dark:text-[#102b33]"
+          : "shrink-0 whitespace-nowrap rounded-xl border border-[#d8dedf] bg-[#fbfaf6] px-3 pb-2.5 pt-3 text-[0.68rem] font-semibold uppercase leading-none tracking-[0.12em] text-[#526a73] transition hover:border-[#17242c]/35 hover:text-[#102b3a] dark:border-white/12 dark:bg-[#102a3a] dark:text-[#c9d9df] dark:hover:border-white/35 dark:hover:text-white"
       }
     >
       {config.shortLabel}
