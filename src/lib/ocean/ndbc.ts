@@ -16,6 +16,7 @@ interface NdbcParsedRow {
   waveHeightFt: number | null;
   dominantPeriodSec: number | null;
   meanWaveDirectionDeg: number | null;
+  mixedDirectionCardinals?: [string, string];
   waterTempF: number | null;
 }
 
@@ -116,6 +117,7 @@ export async function getNdbcObservations(stationId: string): Promise<{
       dominantPeriodSec: row.dominantPeriodSec,
       directionDeg: row.meanWaveDirectionDeg,
       directionCardinal: degreesToCardinal(row.meanWaveDirectionDeg),
+      mixedDirectionCardinals: row.mixedDirectionCardinals,
       waterTempF: row.waterTempF,
       source: swellSource,
     };
@@ -270,6 +272,7 @@ export function parseLatestNdbcRow(text: string): NdbcParsedRow | null {
 
   const waveRow = rows.find((row) => numberOrNull(row[8]) !== null) ?? latest;
   const waterTempRow = rows.find((row) => numberOrNull(row[15]) !== null) ?? latest;
+  const mixedDirectionCardinals = detectMixedLongPeriodDirections(rows, waveRow);
 
   return {
     observedAt: parseNdbcTimestamp(latest),
@@ -280,8 +283,45 @@ export function parseLatestNdbcRow(text: string): NdbcParsedRow | null {
     waveHeightFt: metersToFeet(numberOrNull(waveRow[8])),
     dominantPeriodSec: numberOrNull(waveRow[9]),
     meanWaveDirectionDeg: numberOrNull(waveRow[11]),
+    mixedDirectionCardinals,
     waterTempF: celsiusToFahrenheit(numberOrNull(waterTempRow[15])),
   };
+}
+
+function detectMixedLongPeriodDirections(rows: string[][], latestWaveRow: string[]): [string, string] | undefined {
+  const latestHeightM = numberOrNull(latestWaveRow[8]);
+  const latestPeriodSec = numberOrNull(latestWaveRow[9]);
+  const latestDirectionDeg = numberOrNull(latestWaveRow[11]);
+  if (latestHeightM === null || latestPeriodSec === null || latestPeriodSec < 10 || latestDirectionDeg === null) return undefined;
+
+  const latestTime = Date.parse(parseNdbcTimestamp(latestWaveRow));
+  const alternate = rows.find((row) => {
+    if (row === latestWaveRow) return false;
+    const heightM = numberOrNull(row[8]);
+    const periodSec = numberOrNull(row[9]);
+    const directionDeg = numberOrNull(row[11]);
+    if (heightM === null || periodSec === null || directionDeg === null) return false;
+
+    const ageMinutes = (latestTime - Date.parse(parseNdbcTimestamp(row))) / 60000;
+    return (
+      ageMinutes > 0 &&
+      ageMinutes <= 90 &&
+      Math.abs(heightM - latestHeightM) <= 0.5 &&
+      Math.abs(periodSec - latestPeriodSec) <= 2 &&
+      angularDifference(directionDeg, latestDirectionDeg) >= 90
+    );
+  });
+
+  if (!alternate) return undefined;
+  const alternateCardinal = degreesToCardinal(numberOrNull(alternate[11]));
+  const latestCardinal = degreesToCardinal(latestDirectionDeg);
+  if (!alternateCardinal || !latestCardinal || alternateCardinal === latestCardinal) return undefined;
+  return [alternateCardinal, latestCardinal];
+}
+
+function angularDifference(first: number, second: number) {
+  const difference = Math.abs(first - second) % 360;
+  return Math.min(difference, 360 - difference);
 }
 
 function parseNdbcTimestamp(row: string[]) {

@@ -1475,10 +1475,13 @@ function getOffshoreSwellMetric(
   }
 
   if (buoy.swell.heightFt !== null) {
+    const direction = buoy.swell.mixedDirectionCardinals
+      ? `Mixed ${buoy.swell.mixedDirectionCardinals.join(" / ")}`
+      : formatSwellDirection(buoy.swell.directionCardinal, buoy.swell.directionDeg);
     return {
       label: "Swell",
       value: formatFeet(buoy.swell.heightFt),
-      detail: `${buoy.swell.dominantPeriodSec !== null ? `${buoy.swell.dominantPeriodSec}s` : "period unavailable"} · ${formatSwellDirection(buoy.swell.directionCardinal, buoy.swell.directionDeg)}`,
+      detail: `${buoy.swell.dominantPeriodSec !== null ? `${buoy.swell.dominantPeriodSec}s` : "period unavailable"} · ${direction}`,
       source: buoy.swell.source,
     };
   }

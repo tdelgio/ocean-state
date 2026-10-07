@@ -52,6 +52,7 @@ export interface SwellObservation {
   dominantPeriodSec: number | null;
   directionDeg: number | null;
   directionCardinal: string | null;
+  mixedDirectionCardinals?: [string, string];
   waterTempF: number | null;
   source: SourceMeta;
 }
