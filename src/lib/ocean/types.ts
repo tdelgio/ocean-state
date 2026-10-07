@@ -182,6 +182,7 @@ export interface ChannelForecastObservation {
   channelId: "pailolo" | "kaiwi" | "alenuihaha";
   displayName: string;
   wind: WindObservation;
+  seas: string | null;
   bumpEnergy: MarineForecastEnergy;
   rainSummary: string | null;
   forecastDays: MarineForecastDay[];

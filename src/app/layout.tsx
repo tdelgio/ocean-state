@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#04101a",
+  themeColor: "#173844",
   colorScheme: "dark light",
 };
 
@@ -28,7 +28,7 @@ export default function RootLayout({
       <head>
         <style
           dangerouslySetInnerHTML={{
-            __html: "html,body{background-color:#04101a}html.light,html.light body{background-color:#f7fcfd}",
+            __html: "html,body{background-color:#173844}html.light,html.light body{background-color:#f7fcfd}",
           }}
         />
         <script
@@ -46,7 +46,7 @@ try {
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col bg-[#f7fcfd] dark:bg-[#04101a]">{children}</body>
+      <body className="min-h-full flex flex-col bg-[#f7fcfd] dark:bg-[#173844]">{children}</body>
     </html>
   );
 }
