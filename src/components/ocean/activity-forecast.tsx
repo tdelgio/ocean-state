@@ -1293,24 +1293,31 @@ function RunWindCard({ points }: { points: RunWindPoint[] }) {
       <div className="px-4 py-3">
         <ObservationCardHeader icon={Navigation} label="Wind" tone="wind" />
       </div>
-      <div className="grid border-t border-[#d8dedf]/60 dark:border-white/8" style={{ gridTemplateColumns: `repeat(${points.length}, minmax(0, 1fr))` }}>
-        {points.map((point, index) => {
+      <div className="divide-y divide-[#d8dedf]/60 border-t border-[#d8dedf]/60 dark:divide-white/8 dark:border-white/8">
+        {points.map((point) => {
           const tone = getRunWindClasses(getWindToneFromText(point.wind.speed));
           const hasDirection = hasUsableWindDirection(point.wind.direction);
           return (
-            <div key={point.label} className={`min-w-0 bg-[#f8fbfb] px-3 py-3 text-center dark:bg-[#0d2533] sm:px-4 ${index > 0 ? "border-l border-[#d8dedf]/60 dark:border-white/8" : ""}`}>
-              <div className="flex items-center justify-center gap-2">
-                <p className="text-[0.62rem] font-semibold uppercase leading-none tracking-[0.06em] text-[#536b73] dark:text-[#b7cbd3]">{point.label}</p>
-                <RunSourceAgeLink source={point.source} />
-              </div>
-              <div className="mx-auto mt-2 grid w-fit translate-x-2 grid-cols-[2rem_minmax(0,1fr)_2rem] items-center gap-x-3">
-                {hasDirection ? <WindArrow degrees={point.wind.degrees} medium className="text-[#102b3a] dark:text-[#e8f4f7]" /> : <span className="size-7" aria-hidden />}
-                <div className="min-w-0 text-left">
-                  <p className="weather-data whitespace-nowrap text-lg leading-none text-[#102b3a] dark:text-[#f4fbff]">{hasDirection ? point.wind.direction : "No dir"}</p>
-                  <p className={`weather-data mt-1 whitespace-nowrap text-base leading-none tracking-[0.04em] ${tone.speedText}`}>{point.wind.speed}</p>
-                  {point.wind.gust !== "-" ? <p className="weather-data mt-1.5 whitespace-nowrap text-[0.6rem] leading-none text-[#687980] dark:text-[#a9bdc5]">gust {point.wind.gust}</p> : null}
+            <div
+              key={point.label}
+              className="grid min-w-0 items-center gap-3 bg-[#f8fbfb] px-4 pb-3.5 pt-4 dark:bg-[#0d2533]"
+              style={{ gridTemplateColumns: "minmax(0, 1fr) 2rem minmax(0, 1fr)" }}
+            >
+              <div className="min-w-0">
+                <p className="text-[0.74rem] font-semibold uppercase leading-none tracking-[0.09em] text-[#536b73] dark:text-[#b7cbd3]">{point.label}</p>
+                <div className="mt-px">
+                  <RunSourceAgeLink source={point.source} />
                 </div>
-                <span className="size-7" aria-hidden />
+              </div>
+              <div className="grid place-items-center">
+                {hasDirection ? <WindArrow degrees={point.wind.degrees} medium className="text-[#102b3a] dark:text-[#e8f4f7]" /> : <span className="size-7" aria-hidden />}
+              </div>
+              <div className="min-w-0 text-left">
+                  <div className="flex flex-wrap items-baseline justify-start gap-x-2 gap-y-1">
+                    <p className="weather-data whitespace-nowrap text-xl leading-none text-[#102b3a] dark:text-[#f4fbff]">{hasDirection ? point.wind.direction : "No dir"}</p>
+                    <p className={`weather-data whitespace-nowrap text-lg leading-none tracking-[0.04em] ${tone.speedText}`}>{point.wind.speed}</p>
+                  </div>
+                  {point.wind.gust !== "-" ? <p className="weather-data mt-1.5 whitespace-nowrap text-[0.6rem] leading-none text-[#687980] dark:text-[#a9bdc5]">gust {point.wind.gust}</p> : null}
               </div>
             </div>
           );

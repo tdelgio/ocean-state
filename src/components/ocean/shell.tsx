@@ -1,6 +1,9 @@
 import { TopNavigation } from "@/components/ocean/top-navigation";
 import { LiveDataRefresh } from "@/components/ocean/live-data-refresh";
 import { InstallAppLink } from "@/components/ocean/install-app-link";
+import { Coffee } from "lucide-react";
+
+const SUPPORT_OCEAN_STATE_URL = "https://paypal.me/tdelgio";
 
 export function OceanAppShell({
   active,
@@ -19,10 +22,26 @@ export function OceanAppShell({
       <div className="relative flex min-h-screen min-w-0">
         <div className="flex min-h-screen min-w-0 flex-1 flex-col">
           <section className="mx-auto w-full min-w-0 max-w-2xl px-3 py-5 sm:px-6 lg:px-8">{children}</section>
-          <footer className="mx-auto mt-auto w-full max-w-2xl px-3 pb-6 pt-4 text-xs font-semibold text-[#5f7078] sm:px-6 lg:px-8 dark:text-[#b7cbd3]">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[#094c60]/12 pt-4 dark:border-white/12">
-              <span>Live ocean observations for Maui. Sources may be delayed.</span>
-              <InstallAppLink />
+          <footer className="mx-auto mt-auto w-full max-w-2xl px-3 pb-6 pt-5 sm:px-6 lg:px-8">
+            <div className="border-t border-[#094c60]/12 pt-4 dark:border-white/12">
+              <p className="max-w-xl text-xs font-medium leading-5 text-[#5f7078] dark:text-[#b7cbd3]">
+                Ocean State translates NOAA observations and forecasts into a clearer view of ocean conditions. Sources may be delayed.
+              </p>
+              <p className="mt-1 text-[0.64rem] font-medium leading-4 text-[#7a8990] dark:text-[#8fa8b1]">
+                Independent presentation of public data — not an official NOAA service.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold">
+                <InstallAppLink />
+                <a
+                  href={SUPPORT_OCEAN_STATE_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-[#0d5968] underline-offset-4 transition-transform duration-150 hover:underline active:scale-[0.97] dark:text-[#9debf9]"
+                >
+                  <Coffee className="size-3.5" />
+                  Support Ocean State
+                </a>
+              </div>
             </div>
           </footer>
         </div>
