@@ -417,28 +417,28 @@
 
 .dark .ocean-shell {
   background:
-    radial-gradient(circle at 72% 8%, rgba(91, 231, 255, 0.1), transparent 33%),
-    radial-gradient(circle at 18% 78%, rgba(20, 184, 166, 0.08), transparent 36%),
-    linear-gradient(180deg, #04101a 0%, #071824 46%, #081f2c 100%) !important;
-  color: #e9f8fb;
+    radial-gradient(circle at 76% 4%, rgba(150, 190, 194, 0.12), transparent 34%),
+    radial-gradient(circle at 12% 82%, rgba(91, 139, 143, 0.1), transparent 38%),
+    linear-gradient(180deg, #173844 0%, #14333f 48%, #102d39 100%) !important;
+  color: #e6eff0;
 }
 
 .dark .ocean-texture-overlay {
-  opacity: 0.16;
-  mix-blend-mode: screen;
+  opacity: 0.1;
+  mix-blend-mode: soft-light;
   background-image:
-    radial-gradient(circle at 20% 25%, rgba(91, 231, 255, 0.18) 0 1px, transparent 1px),
-    radial-gradient(ellipse at 78% 18%, transparent 0 30%, rgba(91, 231, 255, 0.16) 30.5%, transparent 31.2%, transparent 100%),
-    radial-gradient(ellipse at 24% 82%, transparent 0 34%, rgba(20, 184, 166, 0.16) 34.5%, transparent 35.2%, transparent 100%),
-    repeating-linear-gradient(130deg, transparent 0 34px, rgba(91, 231, 255, 0.08) 35px, transparent 38px);
+    radial-gradient(circle at 20% 25%, rgba(207, 226, 225, 0.2) 0 1px, transparent 1px),
+    radial-gradient(ellipse at 78% 18%, transparent 0 30%, rgba(152, 188, 191, 0.16) 30.5%, transparent 31.2%, transparent 100%),
+    radial-gradient(ellipse at 24% 82%, transparent 0 34%, rgba(107, 155, 156, 0.14) 34.5%, transparent 35.2%, transparent 100%),
+    repeating-linear-gradient(130deg, transparent 0 34px, rgba(184, 211, 212, 0.08) 35px, transparent 38px);
 }
 
 .dark .ocean-card,
 .dark .ocean-card-soft,
 .dark .ocean-row {
-  background: #092231;
-  border-color: rgba(123, 207, 222, 0.16);
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.3);
+  background: #0b2632;
+  border-color: rgba(174, 203, 204, 0.17);
+  box-shadow: 0 14px 34px rgba(5, 22, 29, 0.22);
   backdrop-filter: none;
 }
 
@@ -455,16 +455,16 @@
 
 .dark .ocean-shell aside,
 .dark .ocean-shell header {
-  border-color: rgba(157, 235, 249, 0.16) !important;
-  background: rgba(7, 23, 35, 0.94) !important;
+  border-color: rgba(181, 207, 208, 0.16) !important;
+  background: rgba(14, 42, 53, 0.94) !important;
   backdrop-filter: blur(6px);
 }
 
 .dark .theme-toggle {
-  border-color: rgba(157, 235, 249, 0.12);
-  background: #102a3a;
-  color: #d9f8ff;
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.2);
+  border-color: rgba(183, 207, 207, 0.16);
+  background: #173c49;
+  color: #e3eeee;
+  box-shadow: 0 8px 22px rgba(5, 22, 29, 0.18);
 }
 
 .dark .ocean-shell [class*="text-[#102b3a]"],
@@ -484,7 +484,7 @@
 }
 
 .dark .ocean-shell [class*="bg-white"] {
-  background-color: #102f40 !important;
+  background-color: #12313d !important;
 }
 
 .dark .ocean-shell [class*="bg-[#f7fafa]"],
@@ -492,24 +492,24 @@
 .dark .ocean-shell [class*="bg-[#fbfaf6]"],
 .dark .ocean-shell [class*="bg-[#f4f8f9]"],
 .dark .ocean-shell [class*="bg-[#f8fcfd]"] {
-  background-color: #102f40 !important;
+  background-color: #12313d !important;
 }
 
 .dark .ocean-shell [class*="ring-[#"],
 .dark .ocean-shell [class*="border-[#"],
 .dark .ocean-shell [class*="border-[rgba(9,76,96"] {
-  border-color: rgba(157, 235, 249, 0.14) !important;
-  --tw-ring-color: rgba(157, 235, 249, 0.14) !important;
+  border-color: rgba(178, 205, 206, 0.16) !important;
+  --tw-ring-color: rgba(178, 205, 206, 0.16) !important;
 }
 
 .dark .ocean-shell [class*="bg-[#102b3a]"] {
-  background-color: #14394c !important;
-  color: #e9f8fb !important;
+  background-color: #183c49 !important;
+  color: #e6eff0 !important;
 }
 
 .dark .ocean-shell [class*="bg-[#17242c]"] {
-  background-color: #5be7ff !important;
-  color: #04101a !important;
+  background-color: #86b7b2 !important;
+  color: #102b33 !important;
 }
 
 .dark .ocean-shell [class*="text-[#17242c]"] {

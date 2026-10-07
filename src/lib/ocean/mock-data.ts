@@ -275,6 +275,7 @@ function createMockChannelForecast(channelId: ChannelForecastObservation["channe
     channelId,
     displayName,
     wind: { ...mockWindObservation, speedKt: null, gustKt: null, directionDeg: null, directionCardinal: null },
+    seas: null,
     bumpEnergy: { heightFt: null, periodSec: null, directionCardinal: null },
     rainSummary: null,
     forecastDays: [],
