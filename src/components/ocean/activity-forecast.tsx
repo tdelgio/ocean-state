@@ -2085,8 +2085,9 @@ function LiveSeaInlineCard({
   shoreOcean: ShoreOceanObservations;
   snapshot: OceanConditionSnapshot;
 }) {
-  const forecastToday = shoreOcean.buoyId === "51213" ? getTodayMarineForecast(snapshot.marineForecastDays.leeward) : null;
-  const useForecastFallback = shoreOcean.buoyId === "51213" && isInactiveSource(shoreOcean.swell.source) && forecastToday;
+  const marineZone = shoreOcean.shoreId === "north" ? "windward" : "leeward";
+  const forecastToday = getTodayMarineForecast(snapshot.marineForecastDays[marineZone]);
+  const useForecastFallback = isObservationSourceInactive(shoreOcean.swell.source) && forecastToday !== null;
   const liveBumpEnergy = formatSeaEnergy(shoreOcean.bumpEnergy);
   const forecastBumpEnergy = forecastToday ? formatMarineForecastEnergy(forecastToday.bumpEnergy) : null;
   const bumpEnergy = useForecastFallback ? forecastBumpEnergy : liveBumpEnergy;
@@ -2095,14 +2096,15 @@ function LiveSeaInlineCard({
   const bumpDetail = useForecastFallback ? forecastBumpEnergy?.meta : `${liveBumpEnergy.period} · ${liveBumpEnergy.direction}`;
   const hasBumpEnergy = useForecastFallback ? forecastToday.bumpEnergy.heightFt !== null : shoreOcean.bumpEnergy.heightFt !== null;
   const hasGroundswell = useForecastFallback ? forecastToday.groundswell.heightFt !== null : shoreOcean.groundswell.heightFt !== null;
-  if (!hasBumpEnergy && !hasGroundswell) return null;
+  const hasForecastSeas = useForecastFallback && Boolean(forecastToday.seas);
+  if (!hasBumpEnergy && !hasGroundswell && !hasForecastSeas) return null;
 
   return (
     <section className="ocean-card rounded-[1.5rem] border border-blue-800/18 bg-[#dbeafe] p-5 shadow-[0_12px_28px_rgba(8,74,92,0.08)] dark:border-[#a9c9ca]/18 dark:bg-[#0b2632]">
       <ObservationCardHeader icon={SurfWaveIcon} label="Ocean" tone="swell" source={source} />
       {useForecastFallback ? (
         <p className="mt-3 w-fit rounded-full bg-amber-50 px-2 py-0.5 text-[0.56rem] font-semibold uppercase tracking-[0.1em] text-amber-800 ring-1 ring-amber-200/80 dark:bg-amber-900/30 dark:text-amber-100 dark:ring-amber-300/20">
-          Forecast today · Lanai buoy inactive
+          NWS forecast · {getSourceDisplayName(shoreOcean.swell.source)} inactive
         </p>
       ) : null}
       <div className={`mt-5 grid gap-3 ${hasBumpEnergy && hasGroundswell ? "sm:grid-cols-2" : ""}`}>
@@ -2130,9 +2132,30 @@ function LiveSeaInlineCard({
           <SeaEnergyMeta meta={groundswell.meta} />
         </div>
         ) : null}
+        {hasForecastSeas && !hasBumpEnergy && !hasGroundswell ? (
+          <div className="relative overflow-hidden rounded-2xl border border-blue-900/12 bg-white/55 p-4 dark:border-[#a9c9ca]/14 dark:bg-[#123440]">
+            <span className="absolute inset-y-5 left-0 w-px rounded-full bg-[#9fc6c3]/35" aria-hidden />
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-blue-900/50 dark:text-[#9fb7c0]">
+              Forecast seas
+            </p>
+            <p className="weather-data mt-2 text-3xl leading-tight text-blue-950 dark:text-[#d9f0ff]">
+              {forecastToday.seas}
+            </p>
+            {forecastToday.summary ? (
+              <p className="mt-2 text-sm leading-5 text-blue-900/65 dark:text-[#aec4cb]">
+                {forecastToday.summary}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </section>
   );
+}
+
+function isObservationSourceInactive(source: SourceLike) {
+  const ageMinutes = getSourceAgeMinutes(source);
+  return source.status !== "live" || (ageMinutes !== null && ageMinutes > 180);
 }
 
 function CurrentCard({ current }: { current: OceanConditionSnapshot["current"] }) {
@@ -2267,17 +2290,17 @@ function SourceFreshnessBadge({
           ? formatTime(source.fetchedAt)
           : "updated";
   const station = getSourceDisplayName(source);
+  const isForecastSource =
+    source.source.includes("MFM forecast") ||
+    source.source.includes("Coastal Waters Forecast") ||
+    source.source.includes("NWS hourly forecast");
   const statusLabel =
     inactive
       ? "source inactive"
+      : isForecastSource
+        ? `Forecast · ${freshness}`
       : source.status === "live"
       ? `Live · ${freshness}`
-      : source.source.includes("MFM forecast")
-        ? `Model · ${freshness}`
-      : source.source.includes("Coastal Waters Forecast")
-        ? `Model · ${freshness}`
-      : source.source.includes("NWS hourly forecast")
-        ? `Model · ${freshness}`
       : source.status === "mock"
         ? "Mock"
       : source.status === "missing" || source.status === "error"
@@ -2291,7 +2314,7 @@ function SourceFreshnessBadge({
     : `inline-flex w-fit max-w-full items-center gap-1 justify-self-start rounded-full border border-[#cbd9dd]/60 bg-white/42 ${compact ? "px-1.5 py-0.5 text-[0.52rem]" : "px-2 py-0.5 text-[0.58rem]"} font-medium uppercase tracking-[0.07em] text-[#5f7078] dark:border-white/10 dark:bg-[#102a3a]/54 dark:text-[#a9c0c8]`;
   const content = (
     <>
-      <span className={`${compact ? "size-1" : "size-1.5"} rounded-full ${inactive ? "bg-red-600 dark:bg-red-300" : source.status === "live" ? "live-pulse bg-emerald-500 dark:bg-emerald-400" : source.status === "mock" || source.status === "stale" ? "bg-amber-500" : "bg-red-500 dark:bg-red-400"}`} />
+      <span className={`${compact ? "size-1" : "size-1.5"} rounded-full ${inactive ? "bg-red-600 dark:bg-red-300" : isForecastSource ? "bg-amber-500" : source.status === "live" ? "live-pulse bg-emerald-500 dark:bg-emerald-400" : source.status === "mock" || source.status === "stale" ? "bg-amber-500" : "bg-red-500 dark:bg-red-400"}`} />
       <span className="min-w-0 truncate">
         {label}
       </span>
@@ -2336,6 +2359,7 @@ function getSourceDisplayName(source: SourceLike) {
   if (source.stationId === "TPT2797") return "Kihei tide";
   if (source.stationId === "TPT2799") return "Lahaina tide";
   if (source.stationId === "PHOG") return "Kahului Airport";
+  if (source.stationId === "PHZ117") return "Maui Windward";
   if (source.stationId === "PHZ120") return "Pailolo";
   if (source.stationId === "PHZ116") return "Kaiwi";
   if (source.stationId === "PHZ121") return "Alenuihaha";

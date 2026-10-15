@@ -26,6 +26,11 @@ interface NdbcSpectralPartition {
 }
 
 export async function fetchNdbcRealtimeText(stationId: string): Promise<string> {
+  const { text } = await fetchNdbcRealtime(stationId);
+  return text;
+}
+
+async function fetchNdbcRealtime(stationId: string): Promise<{ text: string; fetchedAt: string }> {
   const response = await fetch(`${NDBC_REALTIME_BASE_URL}/${stationId}.txt`, {
     next: { revalidate: 600 },
     signal: AbortSignal.timeout(NDBC_FETCH_TIMEOUT_MS),
@@ -35,7 +40,12 @@ export async function fetchNdbcRealtimeText(stationId: string): Promise<string> 
     throw new Error(`NDBC ${stationId} request failed with ${response.status}`);
   }
 
-  return response.text();
+  const serverDate = response.headers.get("date");
+  const serverTimestamp = serverDate ? Date.parse(serverDate) : Number.NaN;
+  return {
+    text: await response.text(),
+    fetchedAt: Number.isFinite(serverTimestamp) ? new Date(serverTimestamp).toISOString() : new Date().toISOString(),
+  };
 }
 
 export async function fetchNdbcSpectralText(stationId: string): Promise<string> {
@@ -84,9 +94,8 @@ export async function getNdbcObservations(stationId: string): Promise<{
   groundswell: SeaEnergyObservation;
 }> {
   try {
-    const text = await fetchNdbcRealtimeText(stationId);
+    const { text, fetchedAt } = await fetchNdbcRealtime(stationId);
     const row = parseLatestNdbcRow(text);
-    const fetchedAt = new Date().toISOString();
     if (!row) {
       const stationPageWind = await getNdbcLatestObservationWind(stationId);
       if (stationPageWind) {
