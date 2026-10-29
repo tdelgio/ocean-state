@@ -2087,7 +2087,33 @@ function LiveSeaInlineCard({
 }) {
   const marineZone = shoreOcean.shoreId === "north" ? "windward" : "leeward";
   const forecastToday = getTodayMarineForecast(snapshot.marineForecastDays[marineZone]);
-  const useForecastFallback = isObservationSourceInactive(shoreOcean.swell.source) && forecastToday !== null;
+  const pauwelaInactive = isObservationSourceInactive(shoreOcean.swell.source);
+  const waimeaSignal = shoreOcean.shoreId === "north" && pauwelaInactive ? getWaimeaMauiSignal(snapshot.waimeaProxy) : null;
+  const useForecastFallback = pauwelaInactive && waimeaSignal === null && forecastToday !== null;
+
+  if (waimeaSignal) {
+    return (
+      <section className="ocean-card rounded-[1.5rem] border border-blue-800/18 bg-[#dbeafe] p-5 shadow-[0_12px_28px_rgba(8,74,92,0.08)] dark:border-[#a9c9ca]/18 dark:bg-[#0b2632]">
+        <ObservationCardHeader icon={SurfWaveIcon} label="Ocean" tone="swell" source={waimeaSignal.source} />
+        <p className="mt-3 w-fit rounded-full bg-sky-50 px-2 py-0.5 text-[0.56rem] font-semibold uppercase tracking-[0.1em] text-sky-800 ring-1 ring-sky-200/80 dark:bg-sky-900/30 dark:text-sky-100 dark:ring-sky-300/20">
+          Pauwela inactive · Waimea proxy
+        </p>
+        <div className="mt-5 rounded-2xl border border-blue-900/12 bg-white/55 p-4 dark:border-[#a9c9ca]/14 dark:bg-[#123440]">
+          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-blue-900/50 dark:text-[#9fb7c0]">
+            Waimea Bay · Oʻahu
+          </p>
+          <p className="weather-data mt-2 text-4xl leading-none text-blue-950 dark:text-[#d9f0ff]">
+            {waimeaSignal.height}
+          </p>
+          <SeaEnergyMeta meta={`${waimeaSignal.period} · ${waimeaSignal.direction}`} />
+          <p className="mt-3 text-xs leading-5 text-blue-900/60 dark:text-[#a8c1ca]">
+            Possible Maui arrival in about {waimeaSignal.arrivalHours}h · trend signal, not Maui wave height
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   const liveBumpEnergy = formatSeaEnergy(shoreOcean.bumpEnergy);
   const forecastBumpEnergy = forecastToday ? formatMarineForecastEnergy(forecastToday.bumpEnergy) : null;
   const bumpEnergy = useForecastFallback ? forecastBumpEnergy : liveBumpEnergy;
@@ -2151,6 +2177,35 @@ function LiveSeaInlineCard({
       </div>
     </section>
   );
+}
+
+function getWaimeaMauiSignal(proxy: OceanConditionSnapshot["waimeaProxy"]) {
+  const spectralGroundswell = proxy.groundswell;
+  const useSpectralGroundswell = spectralGroundswell.heightFt !== null && !isObservationSourceInactive(spectralGroundswell.source);
+  const heightFt = useSpectralGroundswell ? spectralGroundswell.heightFt : proxy.swell.heightFt;
+  const periodSec = useSpectralGroundswell ? spectralGroundswell.periodSec : proxy.swell.dominantPeriodSec;
+  const directionDeg = useSpectralGroundswell ? spectralGroundswell.directionDeg : proxy.swell.directionDeg;
+  const directionCardinal = useSpectralGroundswell ? spectralGroundswell.directionCardinal : proxy.swell.directionCardinal;
+  const source = useSpectralGroundswell ? spectralGroundswell.source : proxy.swell.source;
+
+  if (isObservationSourceInactive(source)) return null;
+  if (heightFt === null || periodSec === null || periodSec < 10 || directionDeg === null) return null;
+
+  const normalizedDirection = ((directionDeg % 360) + 360) % 360;
+  const canReachMaui = normalizedDirection >= 281.25 || normalizedDirection <= 11.25;
+  if (!canReachMaui) return null;
+
+  const waimeaToMauiMeters = 190_000;
+  const deepWaterGroupSpeedMetersPerSecond = 0.78 * periodSec;
+  const arrivalHours = Math.max(1, Math.round(waimeaToMauiMeters / deepWaterGroupSpeedMetersPerSecond / 3600));
+
+  return {
+    height: `${heightFt.toFixed(1)} ft`,
+    period: `${Math.round(periodSec)}s`,
+    direction: directionCardinal ?? `${Math.round(directionDeg)}°`,
+    arrivalHours,
+    source,
+  };
 }
 
 function isObservationSourceInactive(source: SourceLike) {
@@ -2347,6 +2402,7 @@ function getCompactSourceName(source: string) {
 
 function getSourceDisplayName(source: SourceLike) {
   if (source.stationId === "51205") return "Pauwela";
+  if (source.stationId === "51201") return "Waimea Bay";
   if (source.stationId === "51213") return "Lanai Offshore";
   if (source.stationId === "51001") return "Open Ocean NW";
   if (source.stationId === "51000") return "Northern Hawaii";

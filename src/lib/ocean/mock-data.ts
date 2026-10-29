@@ -489,6 +489,12 @@ export function createMockOceanSnapshot(route: RouteConfig = malikoNorthShoreRou
         wind: lahainaWind ?? mockShoreObservations.west.wind,
       },
     },
+    waimeaProxy: {
+      displayName: "Waimea Bay",
+      stationId: "51201",
+      swell: mockOpenOceanNwSwellObservation,
+      groundswell: mockOpenOceanNwGroundswellObservation,
+    },
     offshoreObservations: mockOffshoreObservations,
     coastalWinds: mockCoastalWinds,
     harborWinds: mockHarborWinds,

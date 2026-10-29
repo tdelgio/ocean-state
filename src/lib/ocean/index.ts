@@ -109,9 +109,10 @@ function hasUnusableSnapshot(snapshot: OceanConditionSnapshot) {
 
 async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanConditionSnapshot> {
   try {
-    const [buoy, southBuoy, openOceanNwBuoy, northernHawaiiBuoy, southwestHawaiiBuoy, southeastHawaiiBuoy, ddFadForecastWind, tide, southTide, westTide, current, northSurfaceCurrent, southCurrent, westCurrent, pailoloCurrent, kaiwiCurrent, alenuihahaCurrent, coastalWinds, harborWinds, forecastWindows, southForecastWindows, eastForecastWindows, westForecastWindows, marineForecastDays, surfOutlook, channelForecasts, alerts] = await Promise.all([
+    const [buoy, southBuoy, waimeaBuoy, openOceanNwBuoy, northernHawaiiBuoy, southwestHawaiiBuoy, southeastHawaiiBuoy, ddFadForecastWind, tide, southTide, westTide, current, northSurfaceCurrent, southCurrent, westCurrent, pailoloCurrent, kaiwiCurrent, alenuihahaCurrent, coastalWinds, harborWinds, forecastWindows, southForecastWindows, eastForecastWindows, westForecastWindows, marineForecastDays, surfOutlook, channelForecasts, alerts] = await Promise.all([
       getNdbcObservations(route.stations.primaryBuoyId),
       getNdbcObservations("51213"),
+      getNdbcObservations("51201"),
       getNdbcObservations("51001"),
       getNdbcObservations("51000"),
       getNdbcObservations("51002"),
@@ -204,6 +205,12 @@ async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanCond
         west: westCurrent,
       },
       shoreObservations,
+      waimeaProxy: {
+        displayName: "Waimea Bay",
+        stationId: "51201",
+        swell: waimeaBuoy.swell,
+        groundswell: waimeaBuoy.groundswell,
+      },
       offshoreObservations,
       coastalWinds,
       harborWinds,
@@ -232,6 +239,8 @@ async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanCond
         southBuoy.swell.source,
         southBuoy.bumpEnergy.source,
         southBuoy.groundswell.source,
+        waimeaBuoy.swell.source,
+        waimeaBuoy.groundswell.source,
         openOceanNwBuoy.wind.source,
         openOceanNwBuoy.swell.source,
         openOceanNwBuoy.bumpEnergy.source,

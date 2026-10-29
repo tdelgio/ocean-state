@@ -98,6 +98,13 @@ export interface OffshoreBuoyObservation {
   bumpEnergy: SeaEnergyObservation;
 }
 
+export interface SwellProxyObservation {
+  displayName: string;
+  stationId: string;
+  swell: SwellObservation;
+  groundswell: SeaEnergyObservation;
+}
+
 export interface TideEvent {
   time: string;
   heightFt: number;
@@ -238,6 +245,7 @@ export interface OceanConditionSnapshot {
   current: CurrentObservation;
   shoreCurrents: Record<MauiShoreId, CurrentObservation>;
   shoreObservations: Record<MauiShoreId, ShoreOceanObservations>;
+  waimeaProxy: SwellProxyObservation;
   offshoreObservations: Record<OffshoreBuoyId, OffshoreBuoyObservation>;
   coastalWinds: CoastalWindObservation[];
   harborWinds: HarborWindObservation[];
