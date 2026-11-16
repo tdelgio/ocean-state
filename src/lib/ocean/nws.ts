@@ -168,28 +168,34 @@ function collapsePeriodsIntoWindows(periods: NwsHourlyPeriod[], source: SourceMe
   // Keep four full days so regional forecast tabs can use their own NWS
   // point grid instead of falling back to a shared broad marine zone.
   return periods.slice(0, 96).map((period) => {
-    const speedKt = parseWindKt(period.windSpeed);
+    const precipitation = period.probabilityOfPrecipitation?.value;
     return {
       startTime: period.startTime,
       endTime: period.endTime,
-      windSpeedKt: speedKt,
-      windGustKt: period.windGust ? parseWindKt(period.windGust) : null,
+      windSpeedKt: parseWindKt(period.windSpeed),
+      windGustKt: parseWindKt(period.windGust),
       windDirectionDeg: cardinalToDegrees(period.windDirection),
       windDirectionCardinal: period.windDirection || degreesToCardinal(cardinalToDegrees(period.windDirection)),
-      precipitationChancePercent: period.probabilityOfPrecipitation?.value ?? null,
+      precipitationChancePercent:
+        typeof precipitation === "number" && precipitation >= 0 && precipitation <= 100 ? precipitation : null,
       shortForecast: period.shortForecast,
       source,
     };
   });
 }
 
-function parseWindKt(value: string): number | null {
-  const values = [...value.matchAll(/(\d+)/g)].map((match) => Number(match[1])).filter(Number.isFinite);
-  if (!values.length) return null;
-  const speed = Math.max(...values);
-  const normalized = value.toLowerCase();
-  if (normalized.includes("mph")) return Math.round(speed * 0.868976);
-  return speed;
+function parseWindKt(value: unknown): number | null {
+  if (typeof value !== "string") return null;
+
+  const match = /^(\d+(?:\.\d+)?)(?:\s*(?:to|[-–])\s*(\d+(?:\.\d+)?))?\s*(mph|kts?|knots?)?$/.exec(
+    value.trim().toLowerCase(),
+  );
+  if (!match) return null;
+
+  const [, lower, upper, unit] = match;
+  const speed = Math.max(Number(lower), Number(upper ?? lower));
+  if (!Number.isFinite(speed)) return null;
+  return unit === "mph" ? Math.round(speed * 0.868976) : speed;
 }
 
 function cardinalToDegrees(value: string): number | null {
