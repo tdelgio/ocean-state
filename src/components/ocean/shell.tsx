@@ -1,7 +1,8 @@
 import { TopNavigation } from "@/components/ocean/top-navigation";
 import { LiveDataRefresh } from "@/components/ocean/live-data-refresh";
 import { InstallAppLink } from "@/components/ocean/install-app-link";
-import { Coffee } from "lucide-react";
+import { Activity, Coffee } from "lucide-react";
+import Link from "next/link";
 
 const SUPPORT_OCEAN_STATE_URL = "https://paypal.me/tdelgio";
 
@@ -31,6 +32,13 @@ export function OceanAppShell({
                 Independent presentation of public data — not an official NOAA service.
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold">
+                <Link
+                  href="/status"
+                  className="inline-flex items-center gap-1.5 text-[#0d5968] underline-offset-4 transition-transform duration-150 hover:underline active:scale-[0.97] dark:text-[#9debf9]"
+                >
+                  <Activity className="size-3.5" />
+                  Data Health
+                </Link>
                 <InstallAppLink />
                 <a
                   href={SUPPORT_OCEAN_STATE_URL}
