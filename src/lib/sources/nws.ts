@@ -1,6 +1,6 @@
 import type { MarineForecast, MarineWarning, SourceTimestamp } from "@/lib/types";
 
-const NWS_BASE_URL = "https://api.weather.gov";
+import { fetchNwsHourlyUrl, NWS_API_URL } from "./nws-hourly";
 
 export interface NwsPointResponse {
   properties?: {
@@ -12,7 +12,7 @@ export interface NwsPointResponse {
 }
 
 export async function fetchNwsPoint(latitude: number, longitude: number) {
-  const response = await fetch(`${NWS_BASE_URL}/points/${latitude},${longitude}`, {
+  const response = await fetch(`${NWS_API_URL}/points/${latitude},${longitude}`, {
     headers: { Accept: "application/geo+json" },
     next: { revalidate: 900 },
   });
@@ -26,16 +26,7 @@ export async function fetchNwsPoint(latitude: number, longitude: number) {
 
 export async function fetchNwsHourlyForecast(latitude: number, longitude: number) {
   const point = await fetchNwsPoint(latitude, longitude);
-  const forecastHourly = point.properties?.forecastHourly;
-
-  if (!forecastHourly) {
-    throw new Error("NWS point response did not include an hourly forecast URL.");
-  }
-
-  const response = await fetch(forecastHourly, {
-    headers: { Accept: "application/geo+json" },
-    next: { revalidate: 900 },
-  });
+  const response = await fetchNwsHourlyUrl(point.properties?.forecastHourly);
 
   if (!response.ok) {
     throw new Error(`NWS hourly forecast failed: ${response.status}`);
@@ -45,7 +36,7 @@ export async function fetchNwsHourlyForecast(latitude: number, longitude: number
 }
 
 export async function fetchNwsAlerts() {
-  const response = await fetch(`${NWS_BASE_URL}/alerts/active?area=HI`, {
+  const response = await fetch(`${NWS_API_URL}/alerts/active?area=HI`, {
     headers: { Accept: "application/geo+json" },
     next: { revalidate: 300 },
   });

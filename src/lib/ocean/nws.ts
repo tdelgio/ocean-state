@@ -1,9 +1,8 @@
+import { fetchNwsHourlyUrl, NWS_API_URL, NWS_FETCH_TIMEOUT_MS } from "../sources/nws-hourly";
 import { degreesToCardinal } from "./ndbc";
 import type { ForecastWindow, GeoPoint, SourceMeta, WeatherAlert, WindObservation } from "./types";
 
-const NWS_API_URL = "https://api.weather.gov";
 const NWS_HONOLULU_URL = "https://www.weather.gov/hfo/";
-const NWS_FETCH_TIMEOUT_MS = 4500;
 const MAUI_MARINE_ALERT_ZONES = [
   "PHZ116",
   "PHZ117",
@@ -37,14 +36,7 @@ interface NwsHourlyPeriod {
 export async function getNwsForecastWindows(point: GeoPoint): Promise<ForecastWindow[]> {
   try {
     const pointResponse = await fetchNwsPoint(point);
-    const hourlyUrl = pointResponse.properties?.forecastHourly;
-    if (!hourlyUrl) throw new Error("NWS point response did not include forecastHourly");
-
-    const response = await fetch(hourlyUrl, {
-      headers: { Accept: "application/geo+json" },
-      next: { revalidate: 900 },
-      signal: AbortSignal.timeout(NWS_FETCH_TIMEOUT_MS),
-    });
+    const response = await fetchNwsHourlyUrl(pointResponse.properties?.forecastHourly);
     if (!response.ok) throw new Error(`NWS hourly forecast failed with ${response.status}`);
 
     const json = (await response.json()) as {
