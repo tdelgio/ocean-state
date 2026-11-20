@@ -1,0 +1,88 @@
+name: Terraform
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform.yml"
+      - "Dockerfile"
+      - "src/proxy.ts"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: fmt and validate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+          terraform_wrapper: false
+
+      - name: Check formatting
+        run: terraform fmt -check -recursive
+
+      - name: Init without remote state
+        run: terraform init -backend=false -input=false
+
+      - name: Validate
+        run: terraform validate
+
+  plan:
+    name: plan
+    needs: validate
+    if: ${{ vars.AWS_PLAN_ROLE_ARN != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-west-2' }}
+          role-session-name: ocean-state-terraform-plan
+
+      - name: Init
+        env:
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          AWS_REGION_NAME: ${{ vars.AWS_REGION || 'us-west-2' }}
+        run: |
+          if [ -n "$TF_STATE_BUCKET" ]; then
+            terraform init -input=false \
+              -backend-config="bucket=${TF_STATE_BUCKET}" \
+              -backend-config="key=ocean-state/terraform.tfstate" \
+              -backend-config="region=${AWS_REGION_NAME}" \
+              -backend-config="encrypt=true" \
+              -backend-config="use_lockfile=true"
+          else
+            echo "TF_STATE_BUCKET is unset. Planning against an empty local state."
+            terraform init -backend=false -input=false
+          fi
+
+      - name: Plan
+        run: |
+          terraform plan -input=false -lock=false -no-color \
+            -var="image_identifier=${{ vars.TF_VAR_image_identifier || '000000000000.dkr.ecr.us-west-2.amazonaws.com/ocean-state:placeholder' }}"

@@ -3,7 +3,7 @@ import { getMauiCoastalWinds } from "./coastal";
 import { getMauiHarborWinds } from "./harbors";
 import { getChannelForecastObservations, getMauiMarineForecastDays } from "./marine";
 import { getDdFadForecastWind } from "./mfm";
-import { createMockOceanSnapshot, malikoNorthShoreRoute } from "./mock-data";
+import { createUnavailableOceanSnapshot, malikoNorthShoreRoute } from "./mock-data";
 import { getNdbcObservations } from "./ndbc";
 import { getNwsAlerts, getNwsForecastWindows } from "./nws";
 import { getPacioosSurfaceCurrent } from "./pacioos";
@@ -70,7 +70,7 @@ export async function getOceanIntelligence(route: RouteConfig = malikoNorthShore
 
 export async function getOceanConditionSnapshot(route: RouteConfig = malikoNorthShoreRoute): Promise<OceanConditionSnapshot> {
   const now = Date.now();
-  if (snapshotCache?.routeId === route.id && snapshotCache.expiresAt > now && !hasUnusableSnapshot(snapshotCache.snapshot)) {
+  if (snapshotCache?.routeId === route.id && snapshotCache.expiresAt > now) {
     return snapshotCache.snapshot;
   }
 
@@ -80,13 +80,11 @@ export async function getOceanConditionSnapshot(route: RouteConfig = malikoNorth
 
   inFlightSnapshot = loadOceanConditionSnapshot(route)
     .then((snapshot) => {
-      if (!hasUnusableSnapshot(snapshot)) {
-        snapshotCache = {
-          routeId: route.id,
-          expiresAt: Date.now() + SNAPSHOT_CACHE_TTL_MS,
-          snapshot,
-        };
-      }
+      snapshotCache = {
+        routeId: route.id,
+        expiresAt: Date.now() + cacheTtlMs(snapshot),
+        snapshot,
+      };
       return snapshot;
     })
     .finally(() => {
@@ -96,20 +94,15 @@ export async function getOceanConditionSnapshot(route: RouteConfig = malikoNorth
   return inFlightSnapshot;
 }
 
-function hasUnusableSnapshot(snapshot: OceanConditionSnapshot) {
-  return !snapshot.surfOutlook || Object.values(snapshot.shoreTides).some(
-    (tide) =>
-      tide.source.status === "mock" ||
-      tide.source.status === "missing" ||
-      tide.currentWaterLevelFt === null ||
-      !tide.nextHigh ||
-      !tide.nextLow,
-  );
+function cacheTtlMs(snapshot: OceanConditionSnapshot) {
+  if (snapshot.loadError) return 30_000;
+  const hasRealSource = snapshot.sources.some((source) => source.status === "live" || source.status === "stale");
+  return hasRealSource ? SNAPSHOT_CACHE_TTL_MS : 30_000;
 }
 
 async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanConditionSnapshot> {
   try {
-    const [buoy, southBuoy, waimeaBuoy, openOceanNwBuoy, northernHawaiiBuoy, southwestHawaiiBuoy, southeastHawaiiBuoy, ddFadForecastWind, tide, southTide, westTide, current, northSurfaceCurrent, southCurrent, westCurrent, pailoloCurrent, kaiwiCurrent, alenuihahaCurrent, coastalWinds, harborWinds, forecastWindows, southForecastWindows, eastForecastWindows, westForecastWindows, marineForecastDays, surfOutlook, channelForecasts, alerts] = await Promise.all([
+    const [buoy, southBuoy, waimeaBuoy, openOceanNwBuoy, northernHawaiiBuoy, southwestHawaiiBuoy, southeastHawaiiBuoy, ddFadForecastWind, tide, southTide, westTide, current, northSurfaceCurrent, southCurrent, westCurrent, pailoloCurrent, kaiwiCurrent, alenuihahaCurrent, coastalWinds, harborWinds, forecastWindows, southForecastWindows, eastForecastWindows, westForecastWindows, marineForecastDays, surfOutlook, channelForecasts, alertResult] = await Promise.all([
       getNdbcObservations(route.stations.primaryBuoyId),
       getNdbcObservations("51213"),
       getNdbcObservations("51201"),
@@ -139,6 +132,8 @@ async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanCond
       getChannelForecastObservations(),
       getNwsAlerts(route.stations.nwsPoint),
     ]);
+    const resolvedAlerts = alertResult.alerts;
+    const alertFeed = alertResult.source;
     const generatedAt = new Date().toISOString();
     const kiheiWind = coastalWinds.find((coastal) => coastal.id === "kihei")?.observation;
     const lahainaWind = coastalWinds.find((coastal) => coastal.id === "lahaina")?.observation;
@@ -229,7 +224,8 @@ async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanCond
         kaiwi: kaiwiCurrent,
         alenuihaha: alenuihahaCurrent,
       },
-      alerts,
+      alerts: resolvedAlerts,
+      alertFeed,
       sources: [
         buoy.wind.source,
         buoy.swell.source,
@@ -271,11 +267,11 @@ async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanCond
         ...(surfOutlook ? [surfOutlook.source] : []),
         ...(surfOutlook?.spotSource ? [surfOutlook.spotSource] : []),
         ...Object.values(channelForecasts).map((channel) => channel.wind.source),
-        ...alerts.map((alert) => alert.source),
+        ...(resolvedAlerts.length ? resolvedAlerts.map((alert) => alert.source) : [alertFeed]),
       ],
     };
-  } catch {
-    return createMockOceanSnapshot(route);
+  } catch (error) {
+    return createUnavailableOceanSnapshot(route, error);
   }
 }
 

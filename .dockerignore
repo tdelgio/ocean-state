@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+.github
+infra
+*.md
+npm-debug.log*
+.env*
+.vercel
+coverage

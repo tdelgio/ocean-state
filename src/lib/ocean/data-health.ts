@@ -94,7 +94,7 @@ function getHealthState(source: SourceMeta, ageMinutes: number | null, category:
 function getThresholds(category: DataHealthCategory, sourceName: string) {
   const normalized = sourceName.toLowerCase();
   if (normalized.includes("alert")) return { fresh: 15, expired: 30 };
-  if (category === "observation") return { fresh: 60, expired: 180 };
+  if (category === "observation") return { fresh: 30, expired: 90 };
   if (category === "model") return { fresh: 360, expired: 24 * 60 };
   if (category === "forecast") return { fresh: 360, expired: 12 * 60 };
   return { fresh: 90, expired: 6 * 60 };
@@ -103,7 +103,16 @@ function getThresholds(category: DataHealthCategory, sourceName: string) {
 function getCategory(sourceName: string): DataHealthCategory {
   const normalized = sourceName.toLowerCase();
   if (normalized.includes("pacioos") || normalized.includes("roms") || normalized.includes("model")) return "model";
-  if (normalized.includes("forecast") || normalized.includes("prediction") || normalized.includes("cwf")) return "forecast";
+  if (
+    normalized.includes("forecast") ||
+    normalized.includes("prediction") ||
+    normalized.includes("cwf") ||
+    normalized.includes("mfm") ||
+    normalized.includes("coastal grid") ||
+    normalized.includes("surf")
+  ) {
+    return "forecast";
+  }
   if (normalized.includes("ndbc") || normalized.includes("metar") || normalized.includes("co-ops") || normalized.includes("tide")) return "observation";
   return "other";
 }

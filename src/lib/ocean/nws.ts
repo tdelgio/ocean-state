@@ -48,13 +48,14 @@ export async function getNwsForecastWindows(point: GeoPoint): Promise<ForecastWi
     };
     const fetchedAt = new Date().toISOString();
     const observedAt = json.properties?.updateTime ?? json.properties?.generatedAt;
+    const freshnessMinutes = observedAt ? minutesBetween(observedAt, fetchedAt) : undefined;
     const source: SourceMeta = {
       source: "NWS hourly forecast",
-      status: "stale",
+      status: freshnessMinutes !== undefined && freshnessMinutes > 360 ? "stale" : "live",
       sourceUrl: getNwsPointForecastUrl(point),
       fetchedAt,
       observedAt,
-      freshnessMinutes: observedAt ? minutesBetween(observedAt, fetchedAt) : undefined,
+      freshnessMinutes,
     };
 
     return collapsePeriodsIntoWindows(json.properties?.periods ?? [], source);
@@ -64,7 +65,9 @@ export async function getNwsForecastWindows(point: GeoPoint): Promise<ForecastWi
   }
 }
 
-export async function getNwsAlerts(point: GeoPoint): Promise<WeatherAlert[]> {
+export async function getNwsAlerts(point: GeoPoint): Promise<{ alerts: WeatherAlert[]; source: SourceMeta }> {
+  const fetchedAt = new Date().toISOString();
+  const sourceUrl = NWS_HONOLULU_URL;
   try {
     const pointResponse = await fetchNwsPoint(point);
     const zone = pointResponse.properties?.forecastZone?.split("/").at(-1);
@@ -94,26 +97,43 @@ export async function getNwsAlerts(point: GeoPoint): Promise<WeatherAlert[]> {
         };
       }>;
     };
-    const fetchedAt = new Date().toISOString();
-
-    return (json.features ?? []).map((feature, index) => ({
-      id: feature.id ?? `nws-alert-${index}`,
-      headline: feature.properties?.headline ?? feature.properties?.event ?? "NWS alert",
-      severity: feature.properties?.severity ?? "Unknown",
-      event: feature.properties?.event ?? "Unknown",
-      affectedZones: feature.properties?.affectedZones ?? [],
-      effectiveAt: feature.properties?.effective ?? null,
-      expiresAt: feature.properties?.expires ?? null,
-      description: feature.properties?.description ?? "",
+    return {
+      alerts: (json.features ?? []).map((feature, index) => ({
+        id: feature.id ?? `nws-alert-${index}`,
+        headline: feature.properties?.headline ?? feature.properties?.event ?? "NWS alert",
+        severity: feature.properties?.severity ?? "Unknown",
+        event: feature.properties?.event ?? "Unknown",
+        affectedZones: feature.properties?.affectedZones ?? [],
+        effectiveAt: feature.properties?.effective ?? null,
+        expiresAt: feature.properties?.expires ?? null,
+        description: feature.properties?.description ?? "",
+        source: {
+          source: "NWS alerts",
+          status: "live" as const,
+          sourceUrl: feature.id ?? sourceUrl,
+          fetchedAt,
+        },
+      })),
       source: {
         source: "NWS alerts",
         status: "live",
-        sourceUrl: feature.id ?? NWS_HONOLULU_URL,
+        sourceUrl,
         fetchedAt,
+        observedAt: fetchedAt,
+        freshnessMinutes: 0,
       },
-    }));
-  } catch {
-    return [];
+    };
+  } catch (error) {
+    return {
+      alerts: [],
+      source: {
+        source: "NWS alerts",
+        status: "error",
+        sourceUrl,
+        fetchedAt,
+        error: error instanceof Error ? error.message : "NWS alerts request failed",
+      },
+    };
   }
 }
 

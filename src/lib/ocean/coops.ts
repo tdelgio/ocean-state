@@ -78,10 +78,18 @@ export async function getCoopsTideObservation(stationId: string): Promise<TideOb
     return {
       ...mockTideObservation,
       stationId,
+      stationName: stationId,
+      currentWaterLevelFt: null,
+      trend: "unknown",
+      nextHigh: null,
+      nextLow: null,
+      predictions: [],
       source: {
-        ...mockTideObservation.source,
+        source: "NOAA CO-OPS",
+        status: "error",
         stationId,
-        status: "mock",
+        sourceUrl: getCoopsStationUrl(stationId),
+        fetchedAt: new Date().toISOString(),
         error: error instanceof Error ? error.message : "Unknown CO-OPS error",
       },
     };
@@ -103,10 +111,12 @@ export async function getCoopsTidePredictionObservation(stationId: string, stati
       predictions: events,
       source: {
         source: "NOAA tide prediction",
-        status: "stale",
+        status: "live",
         stationId,
         sourceUrl: getCoopsStationUrl(stationId),
         fetchedAt,
+        observedAt: fetchedAt,
+        freshnessMinutes: 0,
       },
     };
   } catch (error) {
@@ -122,7 +132,7 @@ export async function getCoopsTidePredictionObservation(stationId: string, stati
         source: "NOAA tide prediction unavailable",
         stationId,
         sourceUrl: getCoopsStationUrl(stationId),
-        status: "mock",
+        status: "error",
         fetchedAt: new Date().toISOString(),
         error: error instanceof Error ? error.message : "Unknown CO-OPS prediction error",
       },
@@ -224,6 +234,11 @@ export async function getCoopsCurrentPredictionObservation(
     const speedKt = Math.abs(closest.Velocity_Major);
     const trend = Math.abs(closest.Velocity_Major) < 0.05 ? "slack" : closest.Velocity_Major > 0 ? "flood" : "ebb";
     const directionDeg = trend === "slack" ? null : trend === "flood" ? closest.meanFloodDir : closest.meanEbbDir;
+    const fetchedAt = new Date().toISOString();
+    const observedAt = normalizeHawaiiTimestamp(closest.Time);
+    const freshnessMinutes = Number.isFinite(Date.parse(observedAt))
+      ? Math.max(0, Math.round((Date.parse(fetchedAt) - Date.parse(observedAt)) / 60000))
+      : undefined;
     return {
       stationId,
       stationName,
@@ -233,11 +248,12 @@ export async function getCoopsCurrentPredictionObservation(
       trend,
       source: {
         source: "NOAA current prediction",
-        status: "stale",
+        status: freshnessMinutes !== undefined && freshnessMinutes > 180 ? "stale" : "live",
         stationId,
         sourceUrl,
-        fetchedAt: new Date().toISOString(),
-        observedAt: normalizeHawaiiTimestamp(closest.Time),
+        fetchedAt,
+        observedAt,
+        freshnessMinutes,
       },
     };
   } catch (error) {

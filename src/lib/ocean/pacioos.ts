@@ -29,6 +29,10 @@ export async function getPacioosSurfaceCurrent(
     const speedKt = Math.hypot(row.u, row.v) * METERS_PER_SECOND_TO_KNOTS;
     const directionDeg = (Math.atan2(row.u, row.v) * 180) / Math.PI;
     const normalizedDirection = (directionDeg + 360) % 360;
+    const fetchedAt = new Date().toISOString();
+    const freshnessMinutes = Number.isFinite(Date.parse(row.time))
+      ? Math.max(0, Math.round((Date.parse(fetchedAt) - Date.parse(row.time)) / 60000))
+      : undefined;
 
     return {
       stationId,
@@ -38,12 +42,13 @@ export async function getPacioosSurfaceCurrent(
       directionCardinal: degreesToCardinal(normalizedDirection),
       trend: "unknown",
       source: {
-        source: "PacIOOS ROMS surface current forecast",
-        status: "stale",
+        source: "PacIOOS ROMS surface current model",
+        status: freshnessMinutes !== undefined && freshnessMinutes > 360 ? "stale" : "live",
         stationId,
         sourceUrl,
-        fetchedAt: new Date().toISOString(),
+        fetchedAt,
         observedAt: row.time,
+        freshnessMinutes,
       },
     };
   } catch (error) {

@@ -23,7 +23,7 @@ export async function getDdFadForecastWind(): Promise<WindObservation> {
       directionCardinal: parsed.directionCardinal,
       source: {
         source: "NWS HFO MFM forecast · DD FAD Opana Point",
-        status: "stale",
+        status: parsed.issuedAt && minutesBetween(parsed.issuedAt, fetchedAt) > 360 ? "stale" : "live",
         stationId: "DD-FAD",
         sourceUrl: MFM_URL,
         fetchedAt,

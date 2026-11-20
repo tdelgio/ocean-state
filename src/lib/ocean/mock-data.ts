@@ -522,6 +522,13 @@ export function createMockOceanSnapshot(route: RouteConfig = malikoNorthShoreRou
       alenuihaha: mockCurrentObservation,
     },
     alerts: [],
+    alertFeed: {
+      source: "NWS alerts",
+      status: "mock",
+      fetchedAt: now,
+      observedAt: now,
+      freshnessMinutes: 0,
+    },
     sources: [
       mockWindObservation.source,
       mockSwellObservation.source,
@@ -536,6 +543,74 @@ export function createMockOceanSnapshot(route: RouteConfig = malikoNorthShoreRou
       ...mockForecastWindows.map((window) => window.source),
     ],
   };
+}
+
+export function createUnavailableOceanSnapshot(route: RouteConfig, error: unknown): OceanConditionSnapshot {
+  const message = error instanceof Error ? error.message : "Live ocean sources failed";
+  const generatedAt = new Date().toISOString();
+  const snapshot = structuredClone(createMockOceanSnapshot(route));
+  snapshot.generatedAt = generatedAt;
+  snapshot.loadError = message;
+  snapshot.forecastWindows = [];
+  snapshot.shoreForecastWindows = { north: [], south: [], east: [], west: [] };
+  snapshot.marineForecastDays = { windward: [], leeward: [], maalaea: [] };
+  snapshot.alerts = [];
+  snapshot.surfOutlook = null;
+  clearInventedValues(snapshot, message);
+  snapshot.alertFeed = {
+    source: "NWS alerts",
+    status: "error",
+    sourceUrl: "https://www.weather.gov/hfo/",
+    fetchedAt: generatedAt,
+    error: message,
+  };
+  snapshot.sources = snapshot.sources.map((source) => ({
+    ...source,
+    status: "error",
+    error: message,
+    freshnessMinutes: undefined,
+  }));
+  return snapshot;
+}
+
+function clearInventedValues(value: unknown, message: string) {
+  if (!value || typeof value !== "object") return;
+  if (Array.isArray(value)) {
+    value.forEach((item) => clearInventedValues(item, message));
+    return;
+  }
+
+  const record = value as Record<string, unknown>;
+  if (typeof record.source === "string" && typeof record.status === "string") {
+    record.status = "error";
+    record.error = message;
+    delete record.freshnessMinutes;
+  }
+
+  for (const key of [
+    "speedKt",
+    "gustKt",
+    "directionDeg",
+    "heightFt",
+    "dominantPeriodSec",
+    "periodSec",
+    "currentWaterLevelFt",
+    "waterTempF",
+    "windSpeedKt",
+    "windGustKt",
+    "windDirectionDeg",
+    "precipitationChancePercent",
+  ]) {
+    if (key in record) record[key] = null;
+  }
+  if ("directionCardinal" in record) record.directionCardinal = null;
+  if ("windDirectionCardinal" in record) record.windDirectionCardinal = null;
+  if ("speedRangeKt" in record) record.speedRangeKt = null;
+  if ("nextHigh" in record) record.nextHigh = null;
+  if ("nextLow" in record) record.nextLow = null;
+  if ("predictions" in record && Array.isArray(record.predictions)) record.predictions = [];
+
+  for (const child of Object.values(record)) clearInventedValues(child, message);
 }
 
 function createMockHarborWind(
