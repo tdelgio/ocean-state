@@ -178,19 +178,13 @@ export function HomeForecastOverview({
           />
         ))}
       </div>
-      <p className="-mt-4 px-1 text-xs leading-5 text-[#5f7078] dark:text-[#b7cbd3]">
-        {selectedShore === "north"
-          ? "Maliko downwind wind is shown first. Observed, forecast, and model values stay labeled."
-          : `${shore.label} wind stays on screen even when the buoy is down. Forecast rows are labeled Forecast.`}
-      </p>
 
       <WindBoard
         kicker={selectedShore === "north" ? "Maliko downwind" : shore.label}
         title="Wind"
-        note={selectedShore === "north" ? "Kanaha, Kahului Harbor, and Pauwela. Knots are observed unless the row says Forecast." : "Offshore buoy first. The second row is a nearshore forecast, not a beach measurement."}
+        note={selectedShore === "north" ? "Kanaha and Kahului Harbor. Knots are observed unless the row says Forecast." : "Offshore buoy first. The second row is a nearshore forecast, not a beach measurement."}
         points={windPoints}
       />
-      <BuoyStrip snapshot={snapshot} />
 
       <section className="space-y-4">
         <div className="grid gap-4">
@@ -296,7 +290,7 @@ function WindPointRow({ point }: { point: ShoreWindPoint }) {
   );
 }
 
-function BuoyStrip({ snapshot }: { snapshot: OceanConditionSnapshot }) {
+export function BuoyStrip({ snapshot }: { snapshot: OceanConditionSnapshot }) {
   const buoys = [
     { name: "Pauwela", id: "51205", wind: snapshot.wind, swell: snapshot.swell },
     { name: "Lanai", id: "51213", wind: snapshot.offshoreObservations["lanai-offshore"].wind, swell: snapshot.offshoreObservations["lanai-offshore"].swell },
@@ -345,7 +339,6 @@ function buildShoreWindPoints(shore: Shore, snapshot: OceanConditionSnapshot): S
     return [
       shoreWindPoint("Kanaha", "Airport METAR · water may differ", snapshot.coastalWinds.find((item) => item.id === "kanaha")?.observation),
       shoreWindPoint("Harbor", "Kahului Harbor station", snapshot.harborWinds.find((item) => item.id === "kahului-harbor")?.observation),
-      shoreWindPoint("Pauwela", "Buoy 51205", snapshot.wind),
     ];
   }
 
