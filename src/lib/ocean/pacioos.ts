@@ -14,9 +14,10 @@ export async function getPacioosSurfaceCurrent(
 ): Promise<CurrentObservation> {
   const sourceUrl = PACIOOS_ROMS_SOURCE_URL;
   try {
+    const time = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
     const query = [
-      `u[(last)][(0.0)][(${point.latitude})][(${point.longitude})]`,
-      `v[(last)][(0.0)][(${point.latitude})][(${point.longitude})]`,
+      `u[(${time})][(0.0)][(${point.latitude})][(${point.longitude})]`,
+      `v[(${time})][(0.0)][(${point.latitude})][(${point.longitude})]`,
     ].join(",");
     const response = await fetch(`${PACIOOS_ROMS_ERDDAP_URL}?${query}`, {
       next: { revalidate: 900 },
@@ -30,8 +31,9 @@ export async function getPacioosSurfaceCurrent(
     const directionDeg = (Math.atan2(row.u, row.v) * 180) / Math.PI;
     const normalizedDirection = (directionDeg + 360) % 360;
     const fetchedAt = new Date().toISOString();
-    const freshnessMinutes = Number.isFinite(Date.parse(row.time))
-      ? Math.max(0, Math.round((Date.parse(fetchedAt) - Date.parse(row.time)) / 60000))
+    const observedMs = Date.parse(row.time);
+    const freshnessMinutes = Number.isFinite(observedMs)
+      ? Math.abs(Math.round((Date.parse(fetchedAt) - observedMs) / 60000))
       : undefined;
 
     return {
@@ -60,7 +62,7 @@ export async function getPacioosSurfaceCurrent(
       directionCardinal: null,
       trend: "unknown",
       source: {
-        source: "PacIOOS ROMS surface current forecast",
+        source: "PacIOOS ROMS surface current model",
         status: "missing",
         stationId,
         sourceUrl,

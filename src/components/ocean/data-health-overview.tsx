@@ -13,6 +13,16 @@ const stateConfig: Record<DataHealthState, { label: string; dot: string; badge: 
     dot: "bg-amber-500",
     badge: "border-amber-700/15 bg-amber-50 text-amber-800 dark:border-amber-300/15 dark:bg-amber-950/35 dark:text-amber-100",
   },
+  expired: {
+    label: "Expired",
+    dot: "bg-orange-600",
+    badge: "border-orange-800/30 bg-orange-100 text-orange-950 dark:border-orange-300/35 dark:bg-orange-950/50 dark:text-orange-100",
+  },
+  down: {
+    label: "Down",
+    dot: "bg-rose-600",
+    badge: "border-rose-800/45 bg-rose-100 text-rose-950 ring-1 ring-rose-700/20 dark:border-rose-200/40 dark:bg-rose-950/55 dark:text-rose-50 dark:ring-rose-200/15",
+  },
   unavailable: {
     label: "Unavailable",
     dot: "bg-rose-500 dark:bg-rose-400",
@@ -62,9 +72,11 @@ export function DataHealthOverview({ report, generatedAt }: { report: DataHealth
           <p className="mt-1.5 text-xs leading-5 opacity-75">{overall.description}</p>
         </div>
 
-        <dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
           <SummaryMetric label="Online" value={report.counts.healthy} tone="healthy" />
           <SummaryMetric label="Delayed" value={report.counts.delayed} tone="delayed" />
+          <SummaryMetric label="Expired" value={report.counts.expired} tone="expired" />
+          <SummaryMetric label="Down" value={report.counts.down} tone="down" />
           <SummaryMetric label="Unavailable" value={report.counts.unavailable} tone="unavailable" />
           <SummaryMetric label="Sample" value={report.counts.sample} tone="sample" />
         </dl>
@@ -132,7 +144,7 @@ function SourceRow({ source }: { source: DataHealthSource }) {
     </>
   );
 
-  const className = "flex items-center justify-between gap-3 px-4 py-3.5";
+  const className = `flex items-center justify-between gap-3 px-4 py-3.5 ${source.state === "down" ? "bg-rose-50/90 dark:bg-rose-950/30" : source.state === "expired" ? "bg-orange-50/70 dark:bg-orange-950/20" : ""}`;
   return source.sourceUrl ? (
     <a href={source.sourceUrl} target="_blank" rel="noreferrer" className={`${className} transition-colors hover:bg-[#edf8f7]/65 dark:hover:bg-white/[0.035]`}>
       {content}
@@ -156,6 +168,15 @@ function getOverallCopy(state: DataHealthReport["overall"]) {
     iconBackground: "bg-emerald-100 dark:bg-emerald-950/45",
     iconColor: "text-emerald-700 dark:text-emerald-300",
     panel: "border-emerald-700/12 bg-emerald-50/70 text-emerald-900 dark:border-emerald-300/12 dark:bg-emerald-950/25 dark:text-emerald-100",
+  };
+  if (state === "down") return {
+    title: "Some buoys are down",
+    description: "A buoy is down when its latest report is older than 60 minutes, or it is not reporting. The row shows how long ago the last real reading was.",
+    Icon: TriangleAlert,
+    dot: "bg-rose-600",
+    iconBackground: "bg-rose-100 dark:bg-rose-950/45",
+    iconColor: "text-rose-800 dark:text-rose-200",
+    panel: "border-rose-800/25 bg-rose-50 text-rose-950 dark:border-rose-200/20 dark:bg-rose-950/35 dark:text-rose-50",
   };
   if (state === "delayed") return {
     title: "Some sources are delayed",

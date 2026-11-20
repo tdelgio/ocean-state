@@ -1,4 +1,4 @@
-import { fetchNwsHourlyUrl, NWS_API_URL, NWS_FETCH_TIMEOUT_MS } from "../sources/nws-hourly";
+import { fetchNwsHourlyUrl, NWS_API_HEADERS, NWS_API_URL, NWS_FETCH_TIMEOUT_MS } from "../sources/nws-hourly";
 import { degreesToCardinal } from "./ndbc";
 import type { ForecastWindow, GeoPoint, SourceMeta, WeatherAlert, WindObservation } from "./types";
 
@@ -77,7 +77,7 @@ export async function getNwsAlerts(point: GeoPoint): Promise<{ alerts: WeatherAl
     );
     const url = zones.length ? `${NWS_API_URL}/alerts/active?zone=${zones.join(",")}` : `${NWS_API_URL}/alerts/active?point=${point.latitude},${point.longitude}`;
     const response = await fetch(url, {
-      headers: { Accept: "application/geo+json" },
+      headers: NWS_API_HEADERS,
       next: { revalidate: 300 },
       signal: AbortSignal.timeout(NWS_FETCH_TIMEOUT_MS),
     });
@@ -176,7 +176,7 @@ export type { GeoPoint };
 
 async function fetchNwsPoint(point: GeoPoint): Promise<NwsPointResponse> {
   const response = await fetch(`${NWS_API_URL}/points/${point.latitude},${point.longitude}`, {
-    headers: { Accept: "application/geo+json" },
+    headers: NWS_API_HEADERS,
     next: { revalidate: 86400 },
     signal: AbortSignal.timeout(NWS_FETCH_TIMEOUT_MS),
   });

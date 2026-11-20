@@ -23,7 +23,7 @@ import type {
   ShoreOceanObservations,
   WindObservation,
 } from "@/lib/ocean";
-import { classifySource } from "@/lib/ocean/source-label";
+import { classifySource, isBuoySource, isFreshBuoySource, isWavesOnlyWindSource } from "@/lib/ocean/source-label";
 
 type ObservationMode = "shores" | "channels" | "harbors";
 type Activity = ObservationMode | "downwind" | "fishing";
@@ -182,7 +182,7 @@ export function HomeForecastOverview({
       <WindBoard
         kicker={selectedShore === "north" ? "Maliko downwind" : shore.label}
         title="Wind"
-        note={selectedShore === "north" ? "Kanaha and Kahului Harbor. Knots are observed unless the row says Forecast." : "Offshore buoy first. The second row is a nearshore forecast, not a beach measurement."}
+        note={selectedShore === "north" ? "Kanaha and Kahului Harbor. Knots are observed unless the row says Forecast." : "A buoy row is shown only while its wind is fresh. Forecast rows are labeled Forecast."}
         points={windPoints}
       />
 
@@ -246,9 +246,11 @@ function WindBoard({
         <p className="mt-1 text-xs leading-5 text-[#5f7078] dark:text-[#b7cbd3]">{note}</p>
       </div>
       <div className="divide-y divide-[#d8dedf]/60 border-t border-[#d8dedf]/60 dark:divide-white/8 dark:border-white/8">
-        {points.map((point) => (
+        {points.length ? points.map((point) => (
           <WindPointRow key={point.label} point={point} />
-        ))}
+        )) : (
+          <p className="bg-[#f8fbfb] px-4 py-3 text-sm text-[#5f7078] dark:bg-[#0d2533] dark:text-[#b7cbd3]">No fresh wind reading.</p>
+        )}
       </div>
     </section>
   );
@@ -290,12 +292,15 @@ function WindPointRow({ point }: { point: ShoreWindPoint }) {
   );
 }
 
+/** Not rendered on home. Kept so the buoy list can come back without rebuilding the card. */
 export function BuoyStrip({ snapshot }: { snapshot: OceanConditionSnapshot }) {
   const buoys = [
     { name: "Pauwela", id: "51205", wind: snapshot.wind, swell: snapshot.swell },
     { name: "Lanai", id: "51213", wind: snapshot.offshoreObservations["lanai-offshore"].wind, swell: snapshot.offshoreObservations["lanai-offshore"].swell },
     { name: "NW", id: "51001", wind: snapshot.offshoreObservations["open-ocean-nw"].wind, swell: snapshot.offshoreObservations["open-ocean-nw"].swell },
-  ];
+  ].filter((buoy) => isFreshBuoySource(buoy.swell.source) || (buoy.id !== "51205" && isFreshBuoySource(buoy.wind.source)));
+
+  if (!buoys.length) return null;
 
   return (
     <section className="ocean-card overflow-hidden rounded-[1.35rem] border">
@@ -305,14 +310,14 @@ export function BuoyStrip({ snapshot }: { snapshot: OceanConditionSnapshot }) {
       </div>
       <ul className="divide-y divide-[#094c60]/8 dark:divide-white/8">
         {buoys.map((buoy) => {
-          const swellClass = classifySource(buoy.swell.source);
-          const windClass = classifySource(buoy.wind.source);
-          const swellText = swellClass.presentNumbers && buoy.swell.heightFt !== null
+          const showSwell = isFreshBuoySource(buoy.swell.source) && buoy.swell.heightFt !== null;
+          const showWind = buoy.id !== "51205" && !isWavesOnlyWindSource(buoy.wind.source) && isFreshBuoySource(buoy.wind.source) && buoy.wind.speedKt !== null;
+          const swellText = showSwell
             ? `${buoy.swell.heightFt} ft · ${buoy.swell.dominantPeriodSec ?? "—"}s · ${buoy.swell.directionCardinal ?? "—"}`
-            : "No recent swell";
-          const windText = windClass.presentNumbers && buoy.wind.speedKt !== null
+            : "—";
+          const windText = showWind
             ? `${buoy.wind.directionCardinal ?? "—"} ${formatWindValue(buoy.wind.speedKt)}`
-            : "Wind unavailable";
+            : null;
           return (
             <li key={buoy.id} className="grid gap-1 px-4 py-3 sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:items-center">
               <div>
@@ -321,9 +326,9 @@ export function BuoyStrip({ snapshot }: { snapshot: OceanConditionSnapshot }) {
               </div>
               <div className="min-w-0">
                 <p className="weather-data text-lg leading-none text-[#075985] dark:text-[#7dd3fc]">{swellText}</p>
-                <p className="mt-1 text-xs font-semibold text-[#536b73] dark:text-[#b7cbd3]">{windText}</p>
+                {windText ? <p className="mt-1 text-xs font-semibold text-[#536b73] dark:text-[#b7cbd3]">{windText}</p> : null}
                 <div className="mt-1.5">
-                  <SourceFreshnessBadge source={swellClass.presentNumbers ? buoy.swell.source : buoy.swell.source} compact />
+                  <SourceFreshnessBadge source={showSwell ? buoy.swell.source : buoy.wind.source} compact />
                 </div>
               </div>
             </li>
@@ -343,17 +348,17 @@ function buildShoreWindPoints(shore: Shore, snapshot: OceanConditionSnapshot): S
   }
 
   const lanai = snapshot.offshoreObservations["lanai-offshore"].wind;
-  if (shore === "south") {
-    return [
-      shoreWindPoint("Lanai buoy", "Observed offshore · not the beach", lanai),
-      shoreWindPoint("Kihei", "Nearshore NWS forecast", snapshot.coastalWinds.find((item) => item.id === "kihei")?.observation),
-    ];
-  }
-
-  return [
-    shoreWindPoint("Lanai buoy", "Nearest offshore buoy", lanai),
-    shoreWindPoint("Lahaina", "Nearshore NWS forecast", snapshot.coastalWinds.find((item) => item.id === "lahaina")?.observation),
-  ];
+  const lanaiPoint = isFreshBuoySource(lanai.source)
+    ? shoreWindPoint(
+        "Lanai buoy",
+        shore === "south" ? "Observed offshore · not the beach" : "Nearest offshore buoy",
+        lanai,
+      )
+    : null;
+  const forecast = shore === "south"
+    ? shoreWindPoint("Kihei", "Nearshore NWS forecast", snapshot.coastalWinds.find((item) => item.id === "kihei")?.observation)
+    : shoreWindPoint("Lahaina", "Nearshore NWS forecast", snapshot.coastalWinds.find((item) => item.id === "lahaina")?.observation);
+  return [lanaiPoint, forecast].filter((point): point is ShoreWindPoint => point !== null);
 }
 
 function shoreWindPoint(label: string, note: string, wind: WindObservation | undefined): ShoreWindPoint {
@@ -681,11 +686,9 @@ function ShoresMode({
   const bumpEnergy = formatSeaEnergy(shoreOcean.bumpEnergy);
   const groundswell = formatSeaEnergy(shoreOcean.groundswell);
   const energyDirection = shoreOcean.bumpEnergy.directionCardinal ?? shoreOcean.swell.directionCardinal ?? "direction unavailable";
-  const bumpReading = classifySource(shoreOcean.bumpEnergy.source);
-  const groundReading = classifySource(shoreOcean.groundswell.source);
   const windPoints = buildShoreWindPoints(shoreOcean.shoreId, snapshot);
   const liveDataItemCandidates: Array<LiveDataListItem | null> = [
-    bumpReading.presentNumbers && bumpReading.kind === "observation" && shoreOcean.bumpEnergy.heightFt !== null
+    showsFreshObservation(shoreOcean.bumpEnergy.source) && shoreOcean.bumpEnergy.heightFt !== null
       ? {
           icon: Waves,
           label: "Wind Bumps",
@@ -695,7 +698,7 @@ function ShoresMode({
           source: shoreOcean.bumpEnergy.source,
         }
       : null,
-    groundReading.presentNumbers && groundReading.kind === "observation" && shoreOcean.groundswell.heightFt !== null
+    showsFreshObservation(shoreOcean.groundswell.source) && shoreOcean.groundswell.heightFt !== null
       ? {
           icon: Waves,
           label: "Groundswell",
@@ -705,7 +708,7 @@ function ShoresMode({
           source: shoreOcean.groundswell.source,
         }
       : null,
-    classifySource(shoreOcean.swell.source).presentNumbers && windPoints.some((point) => classifySource(point.wind.source).kind === "observation" && classifySource(point.wind.source).presentNumbers) ? {
+    showsFreshObservation(shoreOcean.swell.source) && windPoints.some((point) => showsFreshObservation(point.wind.source)) ? {
       icon: Navigation,
       label: "Swell Direction",
       tone: "swell",
@@ -1487,9 +1490,13 @@ function getRunWindClasses(tone: WindTone) {
 }
 
 function RunSourceDisclosure({ source }: { source: SourceLike }) {
+  const classification = classifySource(source);
   const ageMinutes = getSourceAgeMinutes(source);
-  const updated = ageMinutes !== null ? `${ageMinutes} min ago` : source.observedAt ? formatTime(source.observedAt) : "update unavailable";
-  return <RunSourcePopover sourceName={getSourceDisplayName(source)} updated={updated} sourceType={source.source} sourceUrl={source.sourceUrl} />;
+  const updated = classification.kind === "model"
+    ? classification.label
+    : ageMinutes !== null ? `${ageMinutes} min ago` : source.observedAt ? formatTime(source.observedAt) : "update unavailable";
+  const sourceType = classification.kind === "model" ? "Model" : source.source;
+  return <RunSourcePopover sourceName={getSourceDisplayName(source)} updated={updated} sourceType={sourceType} sourceUrl={source.sourceUrl} />;
 }
 
 function ChannelWindsSection({
@@ -1527,7 +1534,8 @@ function OffshoreWatersSection({ snapshot }: { snapshot: OceanConditionSnapshot 
     snapshot.offshoreObservations["open-ocean-nw"],
     snapshot.offshoreObservations["southeast-hawaii"],
     snapshot.offshoreObservations["southwest-hawaii"],
-  ].filter(hasUsefulOffshoreData);
+  ].filter(hasFreshOffshoreReading);
+  if (!stations.length) return null;
   return (
     <section className="space-y-3">
       <div>
@@ -1557,26 +1565,27 @@ function OffshoreWatersTable({
         <tbody>
           {stations.map((buoy) => {
             const swell = getOffshoreSwellMetric(buoy, null, false);
-            const wind = windObservationToDisplay(buoy.wind);
-            const windTone = getForecastPowerClasses(getWindToneFromText(wind.speed, wind.gust));
+            const windFresh = isFreshBuoySource(buoy.wind.source);
+            const wind = windFresh ? windObservationToDisplay(buoy.wind) : null;
+            const windTone = wind ? getForecastPowerClasses(getWindToneFromText(wind.speed, wind.gust)) : null;
             return (
               <tr key={buoy.id} className="border-b border-[#094c60]/10 last:border-b-0 dark:border-white/10">
                 <th className="bg-white px-2 py-3 align-middle dark:bg-[#091d2b] sm:px-4 sm:py-3.5 lg:py-5">
                   <p className="text-lg font-bold uppercase leading-none tracking-[0.06em] text-[#536b73] dark:text-[#9fb4bc] sm:text-xl lg:text-2xl">{getOffshoreDisplayName(buoy.id)}</p>
                 </th>
                 <td className="bg-[#f3f9fc] px-2 py-3 align-middle dark:bg-[#0d293b] sm:px-4 sm:py-3.5 lg:py-5">
-                  <OffshoreObservationTimeLink source={swell?.source ?? buoy.swell.source} />
+                  {swell ? <OffshoreObservationTimeLink source={swell.source} /> : null}
                   <p className="weather-data text-xl leading-none text-[#075985] dark:text-[#7dd3fc] sm:text-2xl lg:text-4xl">{swell?.value ?? "—"}</p>
-                  <p className="mt-1 text-[0.62rem] font-semibold leading-tight text-[#536b73] dark:text-[#b7cbd3] sm:mt-1.5 sm:text-xs lg:mt-2 lg:text-base">{swell?.detail ?? "No swell data"}</p>
+                  <p className="mt-1 text-[0.62rem] font-semibold leading-tight text-[#536b73] dark:text-[#b7cbd3] sm:mt-1.5 sm:text-xs lg:mt-2 lg:text-base">{swell?.detail ?? "—"}</p>
                 </td>
-                <td className={`${windTone.background} px-2 py-3 align-middle sm:px-4 sm:py-3.5 lg:py-5`}>
-                  <OffshoreObservationTimeLink source={buoy.wind.source} />
-                  <p className={`weather-data whitespace-nowrap text-xl leading-none ${windTone.speedText} sm:text-2xl lg:text-4xl`}>
-                    {wind.speed}
-                    <span className="ml-1 text-sm text-[#536b73] dark:text-[#b7cbd3] sm:text-base lg:text-xl">· {wind.direction}</span>
+                <td className={`${windTone?.background ?? "bg-[#fff7e8] dark:bg-[#312414]"} px-2 py-3 align-middle sm:px-4 sm:py-3.5 lg:py-5`}>
+                  {wind ? <OffshoreObservationTimeLink source={buoy.wind.source} /> : null}
+                  <p className={`weather-data whitespace-nowrap text-xl leading-none ${windTone?.speedText ?? "text-[#8a5a45]"} sm:text-2xl lg:text-4xl`}>
+                    {wind?.speed ?? "—"}
+                    <span className="ml-1 text-sm text-[#536b73] dark:text-[#b7cbd3] sm:text-base lg:text-xl">· {wind?.direction ?? "—"}</span>
                   </p>
                   <p className="mt-1 text-[0.58rem] font-semibold uppercase leading-none tracking-[0.05em] text-[#8a5a45] dark:text-[#d6a38e] sm:mt-1.5 sm:text-xs lg:mt-2.5 lg:text-base">
-                    Gust <span className="weather-data text-[0.68rem] normal-case tracking-normal text-[#c54824] dark:text-[#fb9270] sm:text-sm lg:text-xl">{wind.gust === "-" ? "—" : wind.gust}</span>
+                    Gust <span className="weather-data text-[0.68rem] normal-case tracking-normal text-[#c54824] dark:text-[#fb9270] sm:text-sm lg:text-xl">{!wind || wind.gust === "-" ? "—" : wind.gust}</span>
                   </p>
                 </td>
               </tr>
@@ -1616,7 +1625,7 @@ function getOffshoreSwellMetric(
     };
   }
 
-  if (buoy.swell.heightFt !== null) {
+  if (isFreshBuoySource(buoy.swell.source) && buoy.swell.heightFt !== null) {
     const direction = buoy.swell.mixedDirectionCardinals
       ? `Mixed ${buoy.swell.mixedDirectionCardinals.join(" / ")}`
       : formatSwellDirection(buoy.swell.directionCardinal, buoy.swell.directionDeg);
@@ -1628,7 +1637,7 @@ function getOffshoreSwellMetric(
     };
   }
 
-  if (buoy.groundswell.heightFt !== null) {
+  if (isFreshBuoySource(buoy.groundswell.source) && buoy.groundswell.heightFt !== null) {
     const groundswell = formatSeaEnergy(buoy.groundswell);
     return {
       label: "Ground Swell",
@@ -1641,8 +1650,8 @@ function getOffshoreSwellMetric(
   return null;
 }
 
-function hasUsefulOffshoreData(buoy: OceanConditionSnapshot["offshoreObservations"][keyof OceanConditionSnapshot["offshoreObservations"]]) {
-  return buoy.id === "lanai-offshore" || buoy.groundswell.heightFt !== null || buoy.swell.heightFt !== null || (buoy.wind.speedKt !== null && buoy.wind.source.status === "live");
+function hasFreshOffshoreReading(buoy: OceanConditionSnapshot["offshoreObservations"][keyof OceanConditionSnapshot["offshoreObservations"]]) {
+  return isFreshBuoySource(buoy.swell.source) || isFreshBuoySource(buoy.groundswell.source) || isFreshBuoySource(buoy.wind.source);
 }
 
 function getTodayMarineForecast(days: MarineForecastDay[]) {
@@ -1650,11 +1659,6 @@ function getTodayMarineForecast(days: MarineForecastDay[]) {
     const weekday = getWeekdayToken(day.dayLabel.trim().replace(/\s+/g, " ").toUpperCase());
     return formatHawaiiDateKey(getMarineForecastDate(weekday, index)) === formatHawaiiDateKey(getHawaiiTodayDate());
   }) ?? days[0] ?? null;
-}
-
-function isInactiveSource(source: SourceLike) {
-  const ageMinutes = getSourceAgeMinutes(source);
-  return source.status !== "live" || (ageMinutes !== null && ageMinutes > 60 * 24 * 3);
 }
 
 function getOffshoreDisplayName(id: OceanConditionSnapshot["offshoreObservations"][keyof OceanConditionSnapshot["offshoreObservations"]]["id"]) {
@@ -2135,7 +2139,7 @@ function HarborWindCard({
 
 function getHarborEntrySwell(snapshot: OceanConditionSnapshot, shore: Shore) {
   const shoreOcean = getShoreOcean(snapshot, shore);
-  if (!isInactiveSource(shoreOcean.swell.source) && shoreOcean.bumpEnergy.heightFt !== null) {
+  if (showsFreshObservation(shoreOcean.bumpEnergy.source) && shoreOcean.bumpEnergy.heightFt !== null) {
     const bumpEnergy = formatSeaEnergy(shoreOcean.bumpEnergy);
     return {
       value: bumpEnergy.height,
@@ -2154,8 +2158,8 @@ function getHarborEntrySwell(snapshot: OceanConditionSnapshot, shore: Shore) {
     };
   }
   return {
-    value: "Entry swell unavailable",
-    detail: "No reliable wave data right now",
+    value: "—",
+    detail: "No forecast seas right now",
     source: undefined,
   };
 }
@@ -2213,9 +2217,6 @@ function LiveSeaInlineCard({
     return (
       <section className="ocean-card rounded-[1.5rem] border border-blue-800/18 bg-[#dbeafe] p-5 shadow-[0_12px_28px_rgba(8,74,92,0.08)] dark:border-[#a9c9ca]/18 dark:bg-[#0b2632]">
         <ObservationCardHeader icon={SurfWaveIcon} label="Ocean" tone="swell" source={waimeaSignal.source} />
-        <p className="mt-3 w-fit rounded-full bg-sky-50 px-2 py-0.5 text-[0.56rem] font-semibold uppercase tracking-[0.1em] text-sky-800 ring-1 ring-sky-200/80 dark:bg-sky-900/30 dark:text-sky-100 dark:ring-sky-300/20">
-          Pauwela inactive · Waimea proxy
-        </p>
         <div className="mt-5 rounded-2xl border border-blue-900/12 bg-white/55 p-4 dark:border-[#a9c9ca]/14 dark:bg-[#123440]">
           <p className="text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-blue-900/50 dark:text-[#9fb7c0]">
             Waimea Bay · Oʻahu
@@ -2238,19 +2239,14 @@ function LiveSeaInlineCard({
   const groundswell = useForecastFallback ? formatMarineForecastEnergy(forecastToday.groundswell) : formatSeaEnergy(shoreOcean.groundswell);
   const source = useForecastFallback ? forecastToday.source : shoreOcean.swell.source;
   const bumpDetail = useForecastFallback ? forecastBumpEnergy?.meta : `${liveBumpEnergy.period} · ${liveBumpEnergy.direction}`;
-  const hasBumpEnergy = useForecastFallback ? forecastToday.bumpEnergy.heightFt !== null : shoreOcean.bumpEnergy.heightFt !== null;
-  const hasGroundswell = useForecastFallback ? forecastToday.groundswell.heightFt !== null : shoreOcean.groundswell.heightFt !== null;
+  const hasBumpEnergy = useForecastFallback ? forecastToday.bumpEnergy.heightFt !== null : !pauwelaInactive && shoreOcean.bumpEnergy.heightFt !== null;
+  const hasGroundswell = useForecastFallback ? forecastToday.groundswell.heightFt !== null : !pauwelaInactive && shoreOcean.groundswell.heightFt !== null;
   const hasForecastSeas = useForecastFallback && Boolean(forecastToday.seas);
   if (!hasBumpEnergy && !hasGroundswell && !hasForecastSeas) return null;
 
   return (
     <section className="ocean-card rounded-[1.5rem] border border-blue-800/18 bg-[#dbeafe] p-5 shadow-[0_12px_28px_rgba(8,74,92,0.08)] dark:border-[#a9c9ca]/18 dark:bg-[#0b2632]">
       <ObservationCardHeader icon={SurfWaveIcon} label="Ocean" tone="swell" source={source} />
-      {useForecastFallback ? (
-        <p className="mt-3 w-fit rounded-full bg-amber-50 px-2 py-0.5 text-[0.56rem] font-semibold uppercase tracking-[0.1em] text-amber-800 ring-1 ring-amber-200/80 dark:bg-amber-900/30 dark:text-amber-100 dark:ring-amber-300/20">
-          NWS forecast · {getSourceDisplayName(shoreOcean.swell.source)} inactive
-        </p>
-      ) : null}
       <div className={`mt-5 grid gap-3 ${hasBumpEnergy && hasGroundswell ? "sm:grid-cols-2" : ""}`}>
         {hasBumpEnergy ? (
         <div className="relative overflow-hidden rounded-2xl border border-blue-900/15 bg-white/70 p-4 dark:border-[#a9c9ca]/14 dark:bg-[#123440]">
@@ -2326,9 +2322,14 @@ function getWaimeaMauiSignal(proxy: OceanConditionSnapshot["waimeaProxy"]) {
   };
 }
 
-function isObservationSourceInactive(source: SourceLike) {
+function showsFreshObservation(source: SourceLike) {
+  if (isBuoySource(source)) return isFreshBuoySource(source);
   const classification = classifySource(source);
-  return classification.kind !== "observation" || !classification.presentNumbers;
+  return classification.kind === "observation" && classification.presentNumbers;
+}
+
+function isObservationSourceInactive(source: SourceLike) {
+  return !showsFreshObservation(source);
 }
 
 function CurrentCard({ current }: { current: OceanConditionSnapshot["current"] }) {
@@ -2542,7 +2543,7 @@ function getCurrentSourceLabel(source: SourceLike) {
 }
 
 function getCurrentCardLabel(source: SourceLike) {
-  if (source.source.includes("PacIOOS")) return "Surface Current";
+  if (source.source.includes("PacIOOS")) return "Model";
   if (source.source.includes("current prediction")) return "Tide Flow Estimate";
   return "Current";
 }

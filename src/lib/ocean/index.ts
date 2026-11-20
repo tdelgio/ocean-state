@@ -8,6 +8,7 @@ import { getNdbcObservations } from "./ndbc";
 import { getNwsAlerts, getNwsForecastWindows } from "./nws";
 import { getPacioosSurfaceCurrent } from "./pacioos";
 import { scoreRoute } from "./scoring";
+import { isWavesOnlyWindSource } from "./source-label";
 import { getSurfOutlook } from "./surf";
 import type { ForecastRegionId, MauiShoreId, OceanConditionSnapshot, OceanIntelligenceResult, OffshoreBuoyId, OffshoreBuoyObservation, RouteConfig, ShoreOceanObservations } from "./types";
 
@@ -227,7 +228,7 @@ async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanCond
       alerts: resolvedAlerts,
       alertFeed,
       sources: [
-        buoy.wind.source,
+        ...(isWavesOnlyWindSource(buoy.wind.source) ? [] : [buoy.wind.source]),
         buoy.swell.source,
         buoy.bumpEnergy.source,
         buoy.groundswell.source,
@@ -251,7 +252,7 @@ async function loadOceanConditionSnapshot(route: RouteConfig): Promise<OceanCond
         tide.source,
         southTide.source,
         westTide.source,
-        current.source,
+        ...(route.stations.currentStationId ? [current.source] : []),
         northSurfaceCurrent.source,
         southCurrent.source,
         westCurrent.source,

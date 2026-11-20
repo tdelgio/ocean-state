@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
+export const maxDuration = 60;
+
 export const metadata: Metadata = {
   title: "Ocean State — Live Maui Ocean Conditions",
   description:
