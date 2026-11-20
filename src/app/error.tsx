@@ -14,7 +14,7 @@ export default function OceanStateError({
   }, [error]);
 
   return (
-    <main className="min-h-screen bg-[#173844] px-6 py-16 text-[#f4fbff]">
+    <main className="min-h-screen bg-[#163440] px-6 py-16 text-[#f4fbfd]">
       <div className="mx-auto max-w-md">
         <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#9debf9]">Ocean State</p>
         <h1 className="mt-2 text-3xl font-semibold">Live data did not load</h1>

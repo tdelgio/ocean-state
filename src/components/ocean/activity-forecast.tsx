@@ -270,23 +270,23 @@ function WindPointRow({ point }: { point: ShoreWindPoint }) {
       style={{ gridTemplateColumns: "minmax(0, 1.15fr) 2rem minmax(0, 1fr)" }}
     >
       <div className="min-w-0">
-        <p className="text-[0.74rem] font-semibold uppercase leading-none tracking-[0.09em] text-[#536b73] dark:text-[#b7cbd3]">{point.label}</p>
-        <p className="mt-1 text-[0.62rem] leading-4 text-[#7a8990] dark:text-[#8fa8b1]">{point.note}</p>
+        <p className="ocean-subtitle font-semibold uppercase tracking-[0.09em] text-[#536b73] dark:text-ocean-secondary">{point.label}</p>
+        <p className="ocean-subtitle mt-1 leading-[1.35] text-[#7a8990] dark:text-ocean-secondary">{point.note}</p>
         <div className="mt-1.5">
           <SourceFreshnessBadge source={point.wind.source} compact />
         </div>
       </div>
       <div className="grid place-items-center">
         {show && point.wind.directionDeg !== null ? (
-          <WindArrow degrees={point.wind.directionDeg} medium className="text-[#102b3a] dark:text-[#e8f4f7]" />
+          <WindArrow degrees={point.wind.directionDeg} medium className="text-[#102b3a] dark:text-ocean-text" />
         ) : (
           <span className="size-7" aria-hidden />
         )}
       </div>
       <div className="min-w-0 text-left">
-        <p className="weather-data whitespace-nowrap text-xl leading-none text-[#102b3a] dark:text-[#f4fbff]">{direction}</p>
-        <p className={`weather-data mt-1 whitespace-nowrap text-2xl leading-none ${show ? tone.speedText : "text-[#8aa0a8] dark:text-[#8fa8b1]"}`}>{speed}</p>
-        {gust ? <p className="weather-data mt-1.5 whitespace-nowrap text-[0.68rem] leading-none text-[#687980] dark:text-[#a9bdc5]">gust {gust}</p> : null}
+        <p className="weather-data whitespace-nowrap text-xl leading-none text-[#102b3a] dark:text-ocean-text">{direction}</p>
+        <p className={`weather-data mt-1 whitespace-nowrap text-2xl leading-none ${show ? `${tone.speedText} ${point.wind.speedKt !== null && point.wind.speedKt > 20 ? "ocean-knots-strong" : "ocean-knots"}` : "text-[#8aa0a8] dark:text-ocean-tertiary"}`}>{speed}</p>
+        {gust ? <p className="ocean-subtitle weather-data mt-1.5 whitespace-nowrap leading-none text-[#687980] dark:text-ocean-secondary">gust {gust}</p> : null}
       </div>
     </div>
   );
@@ -2221,7 +2221,7 @@ function LiveSeaInlineCard({
           <p className="text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-blue-900/50 dark:text-[#9fb7c0]">
             Waimea Bay · Oʻahu
           </p>
-          <p className="weather-data mt-2 text-4xl leading-none text-blue-950 dark:text-[#d9f0ff]">
+          <p className="ocean-swell weather-data mt-2 text-4xl leading-none text-blue-950">
             {waimeaSignal.height}
           </p>
           <SeaEnergyMeta meta={`${waimeaSignal.period} · ${waimeaSignal.direction}`} />
@@ -2254,7 +2254,7 @@ function LiveSeaInlineCard({
           <p className="text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-blue-900/50 dark:text-[#9fb7c0]">
             Wind Swell
           </p>
-          <p className="weather-data mt-2 text-4xl leading-none text-blue-950 dark:text-[#d9f0ff]">
+          <p className="ocean-swell weather-data mt-2 text-4xl leading-none text-blue-950">
             {bumpEnergy?.height}
           </p>
           <SeaEnergyMeta meta={bumpDetail} />
@@ -2266,7 +2266,7 @@ function LiveSeaInlineCard({
           <p className="text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-blue-900/50 dark:text-[#9fb7c0]">
             Groundswell
           </p>
-          <p className="weather-data mt-2 text-4xl leading-none text-blue-950 dark:text-[#d9f0ff]">
+          <p className="ocean-swell weather-data mt-2 text-4xl leading-none text-blue-950">
             {groundswell.height}
           </p>
           <SeaEnergyMeta meta={groundswell.meta} />
@@ -2278,7 +2278,7 @@ function LiveSeaInlineCard({
             <p className="text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-blue-900/50 dark:text-[#9fb7c0]">
               Forecast seas
             </p>
-            <p className="weather-data mt-2 text-3xl leading-tight text-blue-950 dark:text-[#d9f0ff]">
+            <p className="ocean-swell weather-data mt-2 text-3xl leading-tight text-blue-950">
               {forecastToday.seas}
             </p>
             {forecastToday.summary ? (
@@ -2338,7 +2338,7 @@ function CurrentCard({ current }: { current: OceanConditionSnapshot["current"] }
   return (
     <section className="ocean-card rounded-[1.5rem] border border-blue-800/18 bg-[#dbeafe] p-6 dark:border-[#a9c9ca]/18 dark:bg-[#0b2632]">
       <ObservationCardHeader icon={Compass} label={label} tone="tide" source={current.source} useDisclosure />
-      <div className="mt-6 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-blue-950">
+      <div className="ocean-model mt-6 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-blue-950">
         <span className="weather-data text-4xl leading-none">{currentValue.speed}</span>
         {currentValue.unit ? <span className="weather-data text-2xl leading-none">{currentValue.unit}</span> : null}
         {currentValue.direction ? <span className="weather-data text-3xl leading-none">{currentValue.direction}</span> : null}
@@ -2457,8 +2457,8 @@ function SourceFreshnessBadge({
   const label = `${station} · ${classification.label}`;
   const tone = classification.tone;
   const className = tone === "bad"
-    ? `inline-flex w-fit max-w-full items-center gap-1 justify-self-start rounded-full border border-red-500/45 bg-red-50 ${compact ? "px-1.5 py-0.5 text-[0.52rem]" : "px-2 py-0.5 text-[0.58rem]"} font-semibold uppercase tracking-[0.07em] text-red-800 shadow-[0_0_0_1px_rgba(220,38,38,0.06)] dark:border-red-300/45 dark:bg-red-950/35 dark:text-red-100`
-    : `inline-flex w-fit max-w-full items-center gap-1 justify-self-start rounded-full border border-[#cbd9dd]/60 bg-white/42 ${compact ? "px-1.5 py-0.5 text-[0.52rem]" : "px-2 py-0.5 text-[0.58rem]"} font-medium uppercase tracking-[0.07em] text-[#5f7078] dark:border-white/10 dark:bg-[#102a3a]/54 dark:text-[#a9c0c8]`;
+    ? "ocean-badge inline-flex w-fit max-w-full flex-wrap items-center gap-1 justify-self-start rounded-full border border-red-500/45 bg-red-50 px-2 py-0.5 text-left text-[11px] font-semibold uppercase leading-[1.35] tracking-[0.04em] text-red-800 shadow-[0_0_0_1px_rgba(220,38,38,0.06)] dark:border-red-300/45 dark:bg-red-950/35 dark:text-red-100"
+    : "ocean-badge inline-flex w-fit max-w-full flex-wrap items-center gap-1 justify-self-start rounded-full border border-[#cbd9dd]/60 bg-white/42 px-2 py-0.5 text-left text-[11px] font-medium uppercase leading-[1.35] tracking-[0.04em] text-[#5f7078] dark:border-ocean-border dark:bg-ocean-card dark:text-ocean-tertiary";
   const dot = tone === "live"
     ? "live-pulse bg-emerald-500 dark:bg-emerald-400"
     : tone === "stale" || tone === "forecast"
@@ -2469,7 +2469,7 @@ function SourceFreshnessBadge({
   const content = (
     <>
       <span className={`${compact ? "size-1" : "size-1.5"} rounded-full ${dot}`} />
-      <span className="min-w-0 truncate">
+      <span className="min-w-0 whitespace-normal text-left">
         {label}
       </span>
     </>

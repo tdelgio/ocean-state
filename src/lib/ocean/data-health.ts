@@ -4,6 +4,7 @@ import {
   OBSERVATION_FRESH_MINUTES,
   formatLastReading,
   isBuoySource,
+  isBuoyStationId,
   isFreshBuoySource,
   isNdbcSource,
   isWavesOnlyWindSource,
@@ -42,8 +43,7 @@ const STATE_ORDER: Record<DataHealthState, number> = {
 
 export function buildDataHealthReport(sources: SourceMeta[], generatedAt: string): DataHealthReport {
   const uniqueSources = dedupeSources(sources).filter((source) => !isExcludedHealthSource(source));
-  const healthSources = uniqueSources
-    .map((source) => toDataHealthSource(source, generatedAt))
+  const healthSources = dedupeBuoys(uniqueSources.map((source) => toDataHealthSource(source, generatedAt)))
     .sort((left, right) => {
       const byState = STATE_ORDER[left.state] - STATE_ORDER[right.state];
       if (byState !== 0) return byState;
@@ -60,6 +60,50 @@ export function buildDataHealthReport(sources: SourceMeta[], generatedAt: string
 
   const overall = counts.unavailable > 0 ? "unavailable" : counts.down > 0 ? "down" : counts.expired > 0 || counts.delayed > 0 || counts.sample > 0 ? "delayed" : "healthy";
   return { sources: healthSources, counts, overall };
+}
+
+const BUOY_STATION_NAMES: Record<string, string> = {
+  "51205": "Pauwela Buoy",
+  "51213": "Lanai Offshore Buoy",
+  "51201": "Waimea Bay Buoy",
+  "51000": "Northern Hawaii Buoy",
+  "51001": "Open Ocean NW Buoy",
+  "51002": "Southwest Hawaii Buoy",
+  "51004": "Southeast Hawaii Buoy",
+};
+
+function dedupeBuoys(sources: DataHealthSource[]) {
+  const buoys = new Map<string, DataHealthSource>();
+  const rest: DataHealthSource[] = [];
+
+  for (const source of sources) {
+    if (!source.stationId || !isBuoyStationId(source.stationId)) {
+      rest.push(source);
+      continue;
+    }
+    const existing = buoys.get(source.stationId);
+    if (!existing || preferBuoyStatus(source, existing)) {
+      buoys.set(source.stationId, {
+        ...source,
+        id: `buoy-${source.stationId}`,
+        name: BUOY_STATION_NAMES[source.stationId] ?? source.name,
+      });
+    }
+  }
+
+  return [...rest, ...buoys.values()];
+}
+
+function preferBuoyStatus(candidate: DataHealthSource, current: DataHealthSource) {
+  const byState = STATE_ORDER[candidate.state] - STATE_ORDER[current.state];
+  if (byState !== 0) return byState < 0;
+  return observationTime(candidate) > observationTime(current);
+}
+
+function observationTime(source: DataHealthSource) {
+  if (!source.observedAt) return 0;
+  const value = new Date(source.observedAt).getTime();
+  return Number.isFinite(value) ? value : 0;
 }
 
 function dedupeSources(sources: SourceMeta[]) {

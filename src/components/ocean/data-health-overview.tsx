@@ -133,7 +133,7 @@ function SourceRow({ source }: { source: DataHealthSource }) {
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <span className={`rounded-full border px-2 py-1 text-[0.56rem] font-semibold uppercase tracking-[0.07em] ${config.badge}`}>
+        <span className={`ocean-badge rounded-full border px-2 py-1 text-[11px] font-semibold uppercase leading-[1.35] tracking-[0.04em] ${config.badge}`}>
           {config.label}
         </span>
         <span className="min-w-14 text-right text-[0.62rem] font-medium text-[#6b7f87] dark:text-[#9fb4bc]">
