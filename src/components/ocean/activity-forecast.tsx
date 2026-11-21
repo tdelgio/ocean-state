@@ -225,6 +225,8 @@ type ShoreWindPoint = {
   label: string;
   note: string;
   wind: WindObservation;
+  /** Caveat under the place name, such as airport wind not matching the water. */
+  caution?: boolean;
 };
 
 function WindBoard({
@@ -271,9 +273,9 @@ function WindPointRow({ point }: { point: ShoreWindPoint }) {
     >
       <div className="min-w-0">
         <p className="ocean-subtitle font-semibold uppercase tracking-[0.09em] text-[#536b73] dark:text-ocean-secondary">{point.label}</p>
-        <p className="ocean-subtitle mt-1 leading-[1.35] text-[#7a8990] dark:text-ocean-secondary">{point.note}</p>
+        <p className={`ocean-subtitle mt-1 leading-[1.35] ${point.caution ? "text-[#9a3412] ocean-alert" : "text-[#7a8990] dark:text-ocean-secondary"}`}>{point.note}</p>
         <div className="mt-1.5">
-          <SourceFreshnessBadge source={point.wind.source} compact />
+          <SourceFreshnessBadge source={point.wind.source} compact short={point.wind.source.stationId === "PHOG"} />
         </div>
       </div>
       <div className="grid place-items-center">
@@ -342,7 +344,7 @@ export function BuoyStrip({ snapshot }: { snapshot: OceanConditionSnapshot }) {
 function buildShoreWindPoints(shore: Shore, snapshot: OceanConditionSnapshot): ShoreWindPoint[] {
   if (shore === "north") {
     return [
-      shoreWindPoint("Kanaha", "Airport METAR · water may differ", snapshot.coastalWinds.find((item) => item.id === "kanaha")?.observation),
+      shoreWindPoint("Kanaha", "Airport METAR · water may differ", snapshot.coastalWinds.find((item) => item.id === "kanaha")?.observation, true),
       shoreWindPoint("Harbor", "Kahului Harbor station", snapshot.harborWinds.find((item) => item.id === "kahului-harbor")?.observation),
     ];
   }
@@ -361,10 +363,11 @@ function buildShoreWindPoints(shore: Shore, snapshot: OceanConditionSnapshot): S
   return [lanaiPoint, forecast].filter((point): point is ShoreWindPoint => point !== null);
 }
 
-function shoreWindPoint(label: string, note: string, wind: WindObservation | undefined): ShoreWindPoint {
+function shoreWindPoint(label: string, note: string, wind: WindObservation | undefined, caution = false): ShoreWindPoint {
   return {
     label,
     note,
+    caution,
     wind: wind ?? {
       speedKt: null,
       gustKt: null,
@@ -2448,17 +2451,21 @@ function TideEventRow({
 function SourceFreshnessBadge({
   source,
   compact = false,
+  short = false,
 }: {
   source: SourceLike;
   compact?: boolean;
+  short?: boolean;
 }) {
   const classification = classifySource(source);
   const station = getSourceDisplayName(source);
-  const label = `${station} · ${classification.label}`;
+  const fullLabel = `${station} · ${classification.label}`;
+  const label = short ? shortSourceBadgeLabel(source, classification) : fullLabel;
   const tone = classification.tone;
+  const wrap = short ? "flex-nowrap whitespace-nowrap" : "flex-wrap";
   const className = tone === "bad"
-    ? "ocean-badge inline-flex w-fit max-w-full flex-wrap items-center gap-1 justify-self-start rounded-full border border-red-500/45 bg-red-50 px-2 py-0.5 text-left text-[11px] font-semibold uppercase leading-[1.35] tracking-[0.04em] text-red-800 shadow-[0_0_0_1px_rgba(220,38,38,0.06)] dark:border-red-300/45 dark:bg-red-950/35 dark:text-red-100"
-    : "ocean-badge inline-flex w-fit max-w-full flex-wrap items-center gap-1 justify-self-start rounded-full border border-[#cbd9dd]/60 bg-white/42 px-2 py-0.5 text-left text-[11px] font-medium uppercase leading-[1.35] tracking-[0.04em] text-[#5f7078] dark:border-ocean-border dark:bg-ocean-card dark:text-ocean-tertiary";
+    ? `ocean-badge inline-flex w-fit max-w-full ${wrap} items-center gap-1 justify-self-start rounded-full border border-red-500/45 bg-red-50 px-2 py-0.5 text-left text-[11px] font-semibold uppercase leading-[1.35] tracking-[0.04em] text-red-800 shadow-[0_0_0_1px_rgba(220,38,38,0.06)] dark:border-red-300/45 dark:bg-red-950/35 dark:text-red-100`
+    : `ocean-badge inline-flex w-fit max-w-full ${wrap} items-center gap-1 justify-self-start rounded-full border border-[#cbd9dd]/60 bg-white/42 px-2 py-0.5 text-left text-[11px] font-medium uppercase leading-[1.35] tracking-[0.04em] text-[#5f7078] dark:border-ocean-border dark:bg-ocean-card dark:text-ocean-tertiary`;
   const dot = tone === "live"
     ? "live-pulse bg-emerald-500 dark:bg-emerald-400"
     : tone === "stale" || tone === "forecast"
@@ -2469,18 +2476,36 @@ function SourceFreshnessBadge({
   const content = (
     <>
       <span className={`${compact ? "size-1" : "size-1.5"} rounded-full ${dot}`} />
-      <span className="min-w-0 whitespace-normal text-left">
+      <span className={short ? "whitespace-nowrap" : "min-w-0 whitespace-normal text-left"}>
         {label}
       </span>
     </>
   );
+  const accessibleLabel = short ? `${fullLabel}. Open official source.` : `Open official source: ${station}`;
   return source.sourceUrl ? (
-    <a className={`${className} transition hover:border-[#0d5968]/35 hover:text-[#0d5968]`} href={source.sourceUrl} target="_blank" rel="noreferrer" title={`Open official source: ${station}`}>
+    <a className={`${className} transition hover:border-[#0d5968]/35 hover:text-[#0d5968]`} href={source.sourceUrl} target="_blank" rel="noreferrer" title={accessibleLabel} aria-label={accessibleLabel}>
       {content}
     </a>
   ) : (
-    <span className={className}>{content}</span>
+    <span className={className} title={short ? fullLabel : undefined} aria-label={short ? fullLabel : undefined}>{content}</span>
   );
+}
+
+function shortSourceBadgeLabel(source: SourceLike, classification: ReturnType<typeof classifySource>) {
+  const place = source.stationId === "PHOG" ? "Kahului Apt" : getSourceDisplayName(source);
+  const age = classification.ageMinutes;
+  const ageText = age === null ? "" : ` · ${formatShortAge(age)}`;
+  if (classification.kind === "unavailable") return `${place} · N/A`;
+  if (classification.freshness === "fresh") return `${place} · Obs${ageText}`;
+  if (classification.freshness === "stale") return `${place} · Stale${ageText}`;
+  if (classification.freshness === "expired") return `${place} · Old${ageText}`;
+  return `${place} · ${classification.label}`;
+}
+
+function formatShortAge(minutes: number) {
+  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 60 * 36) return `${Math.round(minutes / 60)}h`;
+  return `${Math.round(minutes / (60 * 24))}d`;
 }
 
 function getSourceAgeMinutes(source: SourceLike) {
