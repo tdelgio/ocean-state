@@ -97,7 +97,7 @@ export async function getNdbcObservations(stationId: string): Promise<{
     const { text, fetchedAt } = await fetchNdbcRealtime(stationId);
     const row = parseLatestNdbcRow(text);
     if (!row) {
-      const stationPageWind = await getNdbcLatestObservationWind(stationId);
+      const stationPageWind = ndbcRealtimeReportsWind(text) ? await getNdbcLatestObservationWind(stationId) : null;
       if (stationPageWind) {
         const unavailableRealtimeError = new Error(`NDBC ${stationId} had no parseable realtime wave rows`);
         return {
@@ -109,7 +109,8 @@ export async function getNdbcObservations(stationId: string): Promise<{
       }
       throw new Error(`NDBC ${stationId} had no parseable realtime rows`);
     }
-    const stationPageWind = row.windSpeedKt === null ? await getNdbcLatestObservationWind(stationId) : null;
+    const reportsWind = ndbcRealtimeReportsWind(text);
+    const stationPageWind = reportsWind && row.windSpeedKt === null ? await getNdbcLatestObservationWind(stationId) : null;
     const source =
       stationPageWind?.source ??
       createSource(
@@ -132,14 +133,18 @@ export async function getNdbcObservations(stationId: string): Promise<{
     };
     const spectral = await getNdbcSpectralPartitions(stationId, swell);
 
+    const wind: WindObservation = reportsWind
+      ? {
+          speedKt: stationPageWind?.speedKt ?? row.windSpeedKt,
+          gustKt: stationPageWind?.gustKt ?? row.gustKt,
+          directionDeg: stationPageWind?.directionDeg ?? row.windDirectionDeg,
+          directionCardinal: stationPageWind?.directionCardinal ?? degreesToCardinal(row.windDirectionDeg),
+          source,
+        }
+      : createWavesOnlyWind(stationId, fetchedAt);
+
     return {
-      wind: {
-        speedKt: stationPageWind?.speedKt ?? row.windSpeedKt,
-        gustKt: stationPageWind?.gustKt ?? row.gustKt,
-        directionDeg: stationPageWind?.directionDeg ?? row.windDirectionDeg,
-        directionCardinal: stationPageWind?.directionCardinal ?? degreesToCardinal(row.windDirectionDeg),
-        source,
-      },
+      wind,
       swell,
       bumpEnergy: spectral.bumpEnergy,
       groundswell: spectral.groundswell,
@@ -191,6 +196,22 @@ async function getNdbcStationPageWind(stationId: string): Promise<WindObservatio
   }
 }
 
+function createWavesOnlyWind(stationId: string, fetchedAt: string): WindObservation {
+  return {
+    speedKt: null,
+    gustKt: null,
+    directionDeg: null,
+    directionCardinal: null,
+    source: {
+      source: "NDBC waves only",
+      status: "missing",
+      stationId,
+      sourceUrl: ndbcStationUrl(stationId),
+      fetchedAt,
+    },
+  };
+}
+
 function createUnavailableWindObservation(stationId: string, error: unknown): WindObservation {
   return {
     speedKt: null,
@@ -201,7 +222,7 @@ function createUnavailableWindObservation(stationId: string, error: unknown): Wi
       source: "NDBC wind unavailable",
       status: "missing",
       stationId,
-      sourceUrl: `${NDBC_STATION_PAGE_URL}?station=${stationId.toLowerCase()}`,
+      sourceUrl: ndbcStationUrl(stationId),
       fetchedAt: new Date().toISOString(),
       error: error instanceof Error ? error.message : "Unknown NDBC error",
     },
@@ -267,6 +288,17 @@ async function getNdbcSpectralPartitions(stationId: string, swell: SwellObservat
   } catch {
     return partitionFromStandardSwell(swell);
   }
+}
+
+export function ndbcRealtimeReportsWind(text: string): boolean {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"))
+    .some((line) => {
+      const columns = line.split(/\s+/);
+      return numberOrNull(columns[5]) !== null || numberOrNull(columns[6]) !== null;
+    });
 }
 
 export function parseLatestNdbcRow(text: string): NdbcParsedRow | null {
@@ -379,12 +411,27 @@ export function parseLatestNdbcSpectralRow(text: string): {
   };
 }
 
+function ndbcStationUrl(stationId: string) {
+  return `https://www.ndbc.noaa.gov/station_page.php?station=${stationId.toLowerCase()}`;
+}
+
+function unavailableNdbcSource(source: string, stationId: string, error: unknown): SourceMeta {
+  return {
+    source,
+    status: "missing",
+    stationId,
+    sourceUrl: ndbcStationUrl(stationId),
+    fetchedAt: new Date().toISOString(),
+    error: error instanceof Error ? error.message : "Unknown NDBC error",
+  };
+}
+
 function createSource(source: string, status: SourceMeta["status"], stationId: string, fetchedAt: string, observedAt?: string): SourceMeta {
   return {
     source,
     status,
     stationId,
-    sourceUrl: `https://www.ndbc.noaa.gov/station_page.php?station=${stationId.toLowerCase()}`,
+    sourceUrl: ndbcStationUrl(stationId),
     fetchedAt,
     observedAt,
     freshnessMinutes: observedAt ? minutesBetween(observedAt, fetchedAt) : undefined,
@@ -408,13 +455,7 @@ function withError<T extends WindObservation | SwellObservation>(observation: T,
           directionDeg: null,
           directionCardinal: null,
         }),
-    source: {
-      ...observation.source,
-      stationId,
-      sourceUrl: `https://www.ndbc.noaa.gov/station_page.php?station=${stationId.toLowerCase()}`,
-      status: "missing",
-      error: error instanceof Error ? error.message : "Unknown NDBC error",
-    },
+    source: unavailableNdbcSource("heightFt" in observation ? "NDBC waves unavailable" : "NDBC wind unavailable", stationId, error),
   };
 }
 
@@ -425,13 +466,7 @@ function withSeaEnergyError(observation: SeaEnergyObservation, stationId: string
     periodSec: null,
     directionDeg: null,
     directionCardinal: null,
-    source: {
-      ...observation.source,
-      stationId,
-      sourceUrl: `https://www.ndbc.noaa.gov/station_page.php?station=${stationId.toLowerCase()}`,
-      status: "missing",
-      error: error instanceof Error ? error.message : "Unknown NDBC spectral error",
-    },
+    source: unavailableNdbcSource("NDBC spectrum unavailable", stationId, error),
   };
 }
 

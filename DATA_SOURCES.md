@@ -217,9 +217,10 @@ Estos umbrales son reglas de producto, no garantías del proveedor:
 | Fuente | Fresh | Stale | Acción |
 | --- | --- | --- | --- |
 | NWS Alerts | consulta exitosa en los últimos 5 min | > 10 min o error de refresh | Mantener último aviso visible con edad; mostrar indisponibilidad |
-| NDBC / METAR | observación ≤ 30 min | > 30 min; crítica > 90 min | Atenuar y excluir de afirmaciones “now” |
+| NDBC | observación ≤ 60 min | > 60 min; crítica > 90 min | NDBC publica con 30–40 min de retraso. En páginas de uso, ocultar boyas que no estén frescas. En Data Health, marcarlas Down con la edad del último reporte |
+| METAR | observación ≤ 30 min | > 30 min; crítica > 90 min | Atenuar y excluir de afirmaciones “now” |
 | NWS hourly/CWF | emisión/actualización ≤ 3 h | > 6 h | Mostrar edad y reducir confianza |
-| PacIOOS ROMS | hora válida dentro de la corrida vigente | corrida retrasada o tiempo fuera de rango | Badge Model stale; no extrapolar |
+| PacIOOS ROMS | paso de tiempo más cercano a ahora, dentro de la corrida vigente | corrida retrasada o tiempo a más de 6 h | Badge Model; no usar el último paso del pronóstico ni presentarlo como observación |
 | SRFHFO | producto vigente del ciclo actual | reemplazado o > 12 h sin actualización | Mostrar enlace/edad; no rellenar con mocks |
 
 ## Deuda técnica identificada
@@ -241,4 +242,4 @@ Estos umbrales son reglas de producto, no garantías del proveedor:
 - `src/lib/sources/nwsSurf.ts` — SRFHFO, parser pendiente.
 - `src/lib/ocean/types.ts` — metadata, estados y contratos.
 
-Última revisión documental: 2026-08-14.
+Última revisión documental: 2026-11-20.

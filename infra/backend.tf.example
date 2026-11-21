@@ -1,0 +1,16 @@
+# Remote state is configured as a partial backend in versions.tf.
+# Do not add a second backend block.
+#
+# Create the bucket first (see README), then init with:
+#
+# terraform init -input=false \
+#   -backend-config="bucket=ACCOUNT_ID-ocean-state-tfstate" \
+#   -backend-config="key=ocean-state/terraform.tfstate" \
+#   -backend-config="region=us-west-2" \
+#   -backend-config="encrypt=true" \
+#   -backend-config="use_lockfile=true"
+#
+# encrypt=true turns on SSE for the state object.
+# use_lockfile=true uses a lock file in the same bucket (Terraform 1.10+). No DynamoDB table.
+# key is the object path inside the bucket.
+# region must match the bucket region.

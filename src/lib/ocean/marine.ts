@@ -44,6 +44,10 @@ export function parseMauiMarineForecastProduct(html: string, fetchedAt: string) 
   };
 }
 
+function minutesBetween(start: string, end: string): number {
+  return Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60000));
+}
+
 function createZoneSource(displayName: string, zoneId: string, fetchedAt: string, issuedAt: string | null): SourceMeta {
   return {
     source: `NWS Honolulu Coastal Waters Forecast · ${displayName}`,
@@ -122,13 +126,15 @@ function parseChannelForecast(
   const body = section?.match(/(?:^|\n)\s*\.(?!\.)[A-Z][A-Z ]*\.\.\.([\s\S]*?)(?=\n\s*\.(?!\.)[A-Z][A-Z ]*\.\.\.|\n\s*\$\$)/i)?.[1] ?? null;
   if (!body) return createUnavailableChannelForecast(channelId, config, fetchedAt, new Error(`${config.zoneId} forecast unavailable`));
 
+  const freshnessMinutes = issuedAt ? minutesBetween(issuedAt, fetchedAt) : undefined;
   const source: SourceMeta = {
     source: `NWS Honolulu Coastal Waters Forecast · ${config.displayName}`,
-    status: "stale",
+    status: freshnessMinutes !== undefined && freshnessMinutes > 360 ? "stale" : "live",
     stationId: config.zoneId,
     sourceUrl: CWF_URL,
     fetchedAt,
     observedAt: issuedAt ?? undefined,
+    freshnessMinutes,
   };
   const wind = parseForecastWind(body, source);
   const bumpEnergy = strongestEnergy(parseWaveComponents(body).filter((wave) => wave.periodSec >= 1 && wave.periodSec <= 9));

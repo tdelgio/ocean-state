@@ -22,9 +22,11 @@ npm run start
 
 ## Deploy
 
+The AWS stack is in [`infra/README.md`](infra/README.md). It runs this Next.js server on App Runner behind CloudFront. GitHub Actions only formats, validates, and plans. It never applies.
+
 ### Vercel
 
-Vercel is preferred for this Next.js app.
+Vercel remains a valid host for this Next.js app.
 
 - Framework: Next.js
 - Build command: `npm run build`

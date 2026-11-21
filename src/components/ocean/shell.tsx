@@ -25,10 +25,10 @@ export function OceanAppShell({
           <section className="mx-auto w-full min-w-0 max-w-2xl px-3 py-5 sm:px-6 lg:px-8">{children}</section>
           <footer className="mx-auto mt-auto w-full max-w-2xl px-3 pb-6 pt-5 sm:px-6 lg:px-8">
             <div className="border-t border-[#094c60]/12 pt-4 dark:border-white/12">
-              <p className="max-w-xl text-xs font-medium leading-5 text-[#5f7078] dark:text-[#b7cbd3]">
+              <p className="ocean-subtitle max-w-xl font-medium leading-5 text-[#5f7078] dark:text-ocean-tertiary">
                 Ocean State translates NOAA observations and forecasts into a clearer view of ocean conditions. Sources may be delayed.
               </p>
-              <p className="mt-1 text-[0.64rem] font-medium leading-4 text-[#7a8990] dark:text-[#8fa8b1]">
+              <p className="ocean-subtitle mt-1 font-medium leading-[1.35] text-[#7a8990] dark:text-ocean-tertiary">
                 Independent presentation of public data — not an official NOAA service.
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold">

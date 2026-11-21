@@ -1,5 +1,10 @@
 export const NWS_API_URL = "https://api.weather.gov";
 export const NWS_FETCH_TIMEOUT_MS = 4500;
+export const NWS_USER_AGENT = "OceanState/0.1 (feedback@oceanstate.live)";
+export const NWS_API_HEADERS = {
+  Accept: "application/geo+json",
+  "User-Agent": NWS_USER_AGENT,
+};
 
 export function fetchNwsHourlyUrl(value: unknown) {
   if (typeof value !== "string" || !URL.canParse(value)) {
@@ -17,7 +22,7 @@ export function fetchNwsHourlyUrl(value: unknown) {
   }
 
   return fetch(`${NWS_API_URL}${url.pathname}`, {
-    headers: { Accept: "application/geo+json" },
+    headers: NWS_API_HEADERS,
     next: { revalidate: 900 },
     redirect: "error",
     signal: AbortSignal.timeout(NWS_FETCH_TIMEOUT_MS),

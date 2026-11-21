@@ -256,6 +256,10 @@ export interface OceanConditionSnapshot {
   channelForecasts: Record<ChannelForecastObservation["channelId"], ChannelForecastObservation>;
   channelCurrents: Record<ChannelForecastObservation["channelId"], CurrentObservation>;
   alerts: WeatherAlert[];
+  /** Feed status for NWS alerts. Empty `alerts` plus status `live` means none are active. */
+  alertFeed: SourceMeta;
+  /** Set when the snapshot could not be loaded and every value was cleared. */
+  loadError?: string;
   sources: SourceMeta[];
 }
 

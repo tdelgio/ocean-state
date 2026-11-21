@@ -1,6 +1,6 @@
 import type { MarineForecast, MarineWarning, SourceTimestamp } from "@/lib/types";
 
-import { fetchNwsHourlyUrl, NWS_API_URL } from "./nws-hourly";
+import { fetchNwsHourlyUrl, NWS_API_HEADERS, NWS_API_URL } from "./nws-hourly";
 
 export interface NwsPointResponse {
   properties?: {
@@ -13,7 +13,7 @@ export interface NwsPointResponse {
 
 export async function fetchNwsPoint(latitude: number, longitude: number) {
   const response = await fetch(`${NWS_API_URL}/points/${latitude},${longitude}`, {
-    headers: { Accept: "application/geo+json" },
+    headers: NWS_API_HEADERS,
     next: { revalidate: 900 },
   });
 
@@ -37,7 +37,7 @@ export async function fetchNwsHourlyForecast(latitude: number, longitude: number
 
 export async function fetchNwsAlerts() {
   const response = await fetch(`${NWS_API_URL}/alerts/active?area=HI`, {
-    headers: { Accept: "application/geo+json" },
+    headers: NWS_API_HEADERS,
     next: { revalidate: 300 },
   });
 
